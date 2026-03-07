@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора — WorkSpot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">⚙ Панель администратора</h1>
+  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSpaceModal">
+    + Добавить коворкинг
+  </button>
+</div>
+
+<!-- Таблица коворкингов -->
+{% if spaces %}
+<div class="table-responsive shadow-sm rounded bg-white mb-4">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-dark">
+      <tr>
+        <th>Название</th>
+        <th>Адрес</th>
+        <th>Цена/ч</th>
+        <th>Мест</th>
+        <th>Фото</th>
+        <th class="text-center">Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for space in spaces %}
+      <tr>
+        <td class="fw-semibold">{{ space.name }}</td>
+        <td class="text-muted small">{{ space.address }}, {{ space.city }}</td>
+        <td>{{ space.price_per_hour | int }} ₽</td>
+        <td>{{ space.capacity }}</td>
+        <td>
+          {% if space.photos %}
+          <span class="badge bg-secondary">{{ space.photos | length }} фото</span>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          <div class="d-flex justify-content-center gap-1 flex-wrap">
+            <!-- Редактировать -->
+            <button class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#editSpaceModal"
+                    data-id="{{ space.id }}"
+                    data-name="{{ space.name }}"
+                    data-address="{{ space.address }}"
+                    data-city="{{ space.city }}"
+                    data-description="{{ space.description or '' }}"
+                    data-price="{{ space.price_per_hour }}"
+                    data-capacity="{{ space.capacity }}"
+                    data-amenities="{{ space.amenities | join(',') }}"
+                    data-lat="{{ space.latitude or '' }}"
+                    data-lng="{{ space.longitude or '' }}">
+              ✏ Ред.
+            </button>
+            <!-- Слоты -->
+            <button class="btn btn-sm btn-outline-info"
+                    data-bs-toggle="modal" data-bs-target="#genSlotsModal"
+                    data-id="{{ space.id }}"
+                    data-name="{{ space.name }}">
+              🗓 Слоты
+            </button>
+            <!-- Фото -->
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal" data-bs-target="#uploadPhotoModal"
+                    data-id="{{ space.id }}"
+                    data-name="{{ space.name }}">
+              📷 Фото
+            </button>
+            <!-- Удалить -->
+            <form method="POST" action="/admin/spaces/{{ space.id }}/delete"
+                  onsubmit="return confirm('Удалить «{{ space.name }}»? Это действие необратимо.');"
+                  class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                🗑 Удалить
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-5 bg-white rounded shadow-sm mb-4">
+  <p class="fs-5">Коворкингов пока нет. Добавьте первый!</p>
+</div>
+{% endif %}
+
+
+<!-- ================================================================
+     MODAL: Добавить коворкинг
+     ================================================================ -->
+<div class="modal fade" id="addSpaceModal" tabindex="-1" aria-labelledby="addSpaceModalLabel">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/admin/spaces" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addSpaceModalLabel">Добавить коворкинг</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Название <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required
+                   placeholder="Коворкинг «Центр»">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Город</label>
+            <input type="text" name="city" class="form-control" value="Москва">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Адрес <span class="text-danger">*</span></label>
+            <input type="text" name="address" class="form-control" required
+                   placeholder="ул. Пушкина, д. 1">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="3"
+                      placeholder="Современный коворкинг в центре города..."></textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Цена (₽/час) <span class="text-danger">*</span></label>
+            <input type="number" name="price_per_hour" class="form-control"
+                   min="1" step="50" required placeholder="500">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Вместимость <span class="text-danger">*</span></label>
+            <input type="number" name="capacity" class="form-control"
+                   min="1" required placeholder="10">
+          </div>
+          <div class="col-md-4">
+            <!-- Пустая ячейка для выравнивания -->
+          </div>
+          <div class="col-12">
+            <label class="form-label">Удобства</label>
+            <div class="d-flex flex-wrap gap-3">
+              {% for key, label in [('wifi','Wi-Fi'),('projector','Проектор'),('coffee','Кофе'),('parking','Парковка'),('meeting_room','Переговорная')] %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox"
+                       name="amenities" value="{{ key }}" id="add_am_{{ key }}">
+                <label class="form-check-label" for="add_am_{{ key }}">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Широта (latitude)</label>
+            <input type="number" name="latitude" class="form-control"
+                   step="0.000001" placeholder="55.755800">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Долгота (longitude)</label>
+            <input type="number" name="longitude" class="form-control"
+                   step="0.000001" placeholder="37.617600">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-success">Создать</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     MODAL: Редактировать коворкинг
+     ================================================================ -->
+<div class="modal fade" id="editSpaceModal" tabindex="-1" aria-labelledby="editSpaceModalLabel">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" id="editSpaceForm" action="#" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editSpaceModalLabel">Редактировать коворкинг</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Название</label>
+            <input type="text" name="name" id="edit_name" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Город</label>
+            <input type="text" name="city" id="edit_city" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Адрес</label>
+            <input type="text" name="address" id="edit_address" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Описание</label>
+            <textarea name="description" id="edit_description" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Цена (₽/час)</label>
+            <input type="number" name="price_per_hour" id="edit_price"
+                   class="form-control" min="1" step="50">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Вместимость</label>
+            <input type="number" name="capacity" id="edit_capacity"
+                   class="form-control" min="1">
+          </div>
+          <div class="col-md-4"></div>
+          <div class="col-12">
+            <label class="form-label">Удобства</label>
+            <div class="d-flex flex-wrap gap-3">
+              {% for key, label in [('wifi','Wi-Fi'),('projector','Проектор'),('coffee','Кофе'),('parking','Парковка'),('meeting_room','Переговорная')] %}
+              <div class="form-check">
+                <input class="form-check-input edit-amenity" type="checkbox"
+                       name="amenities" value="{{ key }}" id="edit_am_{{ key }}">
+                <label class="form-check-label" for="edit_am_{{ key }}">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Широта</label>
+            <input type="number" name="latitude" id="edit_lat"
+                   class="form-control" step="0.000001">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Долгота</label>
+            <input type="number" name="longitude" id="edit_lng"
+                   class="form-control" step="0.000001">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     MODAL: Генерация слотов
+     ================================================================ -->
+<div class="modal fade" id="genSlotsModal" tabindex="-1" aria-labelledby="genSlotsModalLabel">
+  <div class="modal-dialog">
+    <form method="POST" id="genSlotsForm" action="#" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="genSlotsModalLabel">Сгенерировать слоты</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">
+          Будут созданы почасовые слоты (09:00–21:00) для площадки
+          <strong id="genSlotsSpaceName"></strong>.
+        </p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Дата начала <span class="text-danger">*</span></label>
+            <input type="date" name="date_from" id="genDateFrom" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Дата конца <span class="text-danger">*</span></label>
+            <input type="date" name="date_to" id="genDateTo" class="form-control" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-info text-white">Сгенерировать</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     MODAL: Загрузка фото
+     ================================================================ -->
+<div class="modal fade" id="uploadPhotoModal" tabindex="-1" aria-labelledby="uploadPhotoModalLabel">
+  <div class="modal-dialog">
+    <form method="POST" id="uploadPhotoForm" action="#"
+          enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadPhotoModalLabel">Загрузить фото</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">
+          Площадка: <strong id="uploadPhotoSpaceName"></strong>
+        </p>
+        <label class="form-label">Файл (jpg, jpeg, png, webp) <span class="text-danger">*</span></label>
+        <input type="file" name="file" class="form-control"
+               accept=".jpg,.jpeg,.png,.webp" required>
+        <div class="form-text">Максимальный размер файла — 10 МБ.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-primary">Загрузить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+  // -----------------------------------------------------------------------
+  // Редактировать коворкинг: заполнить форму из data-атрибутов кнопки
+  // -----------------------------------------------------------------------
+  document.getElementById("editSpaceModal").addEventListener("show.bs.modal", function (event) {
+    var btn = event.relatedTarget;
+    var id          = btn.dataset.id;
+    var amenities   = btn.dataset.amenities ? btn.dataset.amenities.split(",") : [];
+
+    document.getElementById("editSpaceForm").action = "/admin/spaces/" + id + "/edit";
+    document.getElementById("edit_name").value        = btn.dataset.name        || "";
+    document.getElementById("edit_address").value     = btn.dataset.address     || "";
+    document.getElementById("edit_city").value        = btn.dataset.city        || "";
+    document.getElementById("edit_description").value = btn.dataset.description || "";
+    document.getElementById("edit_price").value       = btn.dataset.price       || "";
+    document.getElementById("edit_capacity").value    = btn.dataset.capacity    || "";
+    document.getElementById("edit_lat").value         = btn.dataset.lat         || "";
+    document.getElementById("edit_lng").value         = btn.dataset.lng         || "";
+
+    document.querySelectorAll(".edit-amenity").forEach(function (cb) {
+      cb.checked = amenities.indexOf(cb.value) !== -1;
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Генерация слотов: установить action формы и название площадки
+  // -----------------------------------------------------------------------
+  document.getElementById("genSlotsModal").addEventListener("show.bs.modal", function (event) {
+    var btn = event.relatedTarget;
+    document.getElementById("genSlotsForm").action =
+      "/admin/spaces/" + btn.dataset.id + "/slots";
+    document.getElementById("genSlotsSpaceName").textContent = btn.dataset.name;
+
+    // Установить разумные даты по умолчанию
+    var today = new Date().toISOString().slice(0, 10);
+    var nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    document.getElementById("genDateFrom").value = today;
+    document.getElementById("genDateTo").value   = nextWeek;
+  });
+
+  // -----------------------------------------------------------------------
+  // Загрузка фото: установить action формы и название площадки
+  // -----------------------------------------------------------------------
+  document.getElementById("uploadPhotoModal").addEventListener("show.bs.modal", function (event) {
+    var btn = event.relatedTarget;
+    document.getElementById("uploadPhotoForm").action =
+      "/admin/spaces/" + btn.dataset.id + "/photo";
+    document.getElementById("uploadPhotoSpaceName").textContent = btn.dataset.name;
+  });
+</script>
+{% endblock %}

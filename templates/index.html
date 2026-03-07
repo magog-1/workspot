@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}WorkSpot — Поиск коворкингов{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <h1 class="h3 mb-3">Найдите идеальный коворкинг</h1>
+
+    <!-- Форма фильтров -->
+    <form method="GET" action="/spaces" class="row g-3 p-3 bg-white rounded shadow-sm">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Дата</label>
+        <input type="date" name="date" class="form-control"
+               value="{{ filters.date if filters.date else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Цена до (₽/ч)</label>
+        <input type="number" name="price_max" class="form-control" min="0" step="100"
+               value="{{ filters.price_max if filters.price_max else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Мест не менее</label>
+        <input type="number" name="capacity" class="form-control" min="1"
+               value="{{ filters.capacity if filters.capacity else '' }}">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Удобства</label>
+        <div class="d-flex flex-wrap gap-3 mt-1">
+          {% set amenity_labels = [
+            ('wifi',         'Wi-Fi'),
+            ('projector',    'Проектор'),
+            ('coffee',       'Кофе'),
+            ('parking',      'Парковка'),
+            ('meeting_room', 'Переговорная')
+          ] %}
+          {% for key, label in amenity_labels %}
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" name="amenities"
+                   value="{{ key }}" id="am_{{ key }}"
+                   {% if filters.amenities and key in filters.amenities %}checked{% endif %}>
+            <label class="form-check-label" for="am_{{ key }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">
+          🔍 Найти
+        </button>
+        <a href="/spaces" class="btn btn-outline-secondary">Сбросить</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Яндекс Карта -->
+{% if yandex_api_key %}
+<div id="map" class="mb-4 rounded shadow-sm" style="height: 400px;"></div>
+{% else %}
+<div class="map-placeholder bg-secondary text-white text-center p-5 rounded mb-4 shadow-sm">
+  <p class="mb-0 fs-5">🗺 Карта недоступна — ключ Яндекс Карт не задан</p>
+</div>
+{% endif %}
+
+<!-- Карточки коворкингов -->
+{% if spaces %}
+<p class="text-muted mb-3">Найдено: <strong>{{ spaces | length }}</strong> коворкинг(ов)</p>
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+  {% for space in spaces %}
+  <div class="col">
+    <div class="card h-100 shadow-sm border-0">
+      {% if space.photos %}
+      <img src="{{ space.photos[0] }}" class="card-img-top"
+           alt="{{ space.name }}" style="height: 180px; object-fit: cover;">
+      {% else %}
+      <div class="d-flex align-items-center justify-content-center bg-secondary text-white"
+           style="height: 180px;">
+        <span style="font-size: 3rem;">🏢</span>
+      </div>
+      {% endif %}
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title mb-1">{{ space.name }}</h5>
+        <p class="card-text text-muted small mb-1">
+          📍 {{ space.address }}
+        </p>
+        <p class="card-text mb-2">
+          <strong class="text-primary">{{ space.price_per_hour | int }} ₽/час</strong>
+          <span class="text-muted ms-2">👥 до {{ space.capacity }} чел.</span>
+        </p>
+        {% if space.amenities %}
+        <div class="mb-3">
+          {% set amenity_labels_map = {
+            'wifi': 'Wi-Fi',
+            'projector': 'Проектор',
+            'coffee': 'Кофе',
+            'parking': 'Парковка',
+            'meeting_room': 'Переговорная'
+          } %}
+          {% for a in space.amenities %}
+          <span class="badge bg-info text-dark me-1 mb-1">
+            {{ amenity_labels_map.get(a, a) }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <a href="/spaces/{{ space.id }}" class="btn btn-outline-primary mt-auto">
+          Подробнее →
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p class="fs-4">😔 По вашему запросу ничего не найдено</p>
+  <a href="/spaces" class="btn btn-outline-primary">Показать все коворкинги</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var SPACES = {{ spaces_json | safe }};
+
+  {% if yandex_api_key %}
+  ymaps.ready(function () {
+    var map = new ymaps.Map("map", {
+      center: [55.7558, 37.6176],
+      zoom: 11,
+      controls: ["zoomControl", "fullscreenControl", "typeSelector"]
+    });
+
+    SPACES.forEach(function (s) {
+      if (!s.latitude || !s.longitude) return;
+      var pm = new ymaps.Placemark(
+        [s.latitude, s.longitude],
+        {
+          balloonContentHeader: "<strong>" + s.name + "</strong>",
+          balloonContentBody: "📍 " + s.address + "<br>💰 " + s.price_per_hour + " ₽/час",
+          balloonContentFooter:
+            "<a href='/spaces/" + s.id + "' style='color:#0d6efd;font-weight:500'>" +
+            "Подробнее →</a>",
+          hintContent: s.name
+        },
+        { preset: "islands#blueStretchyIcon" }
+      );
+      map.geoObjects.add(pm);
+    });
+
+    if (typeof ymaps === "undefined") {
+      document.getElementById("map").innerHTML =
+        '<div class="map-placeholder bg-secondary text-white text-center p-5">' +
+        "Карта недоступна</div>";
+    }
+  });
+  {% endif %}
+</script>
+{% endblock %}

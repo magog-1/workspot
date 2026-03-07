@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}{{ space.name }} — WorkSpot{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/spaces">Коворкинги</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ space.name }}</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <!-- Левая колонка: фото + детали -->
+  <div class="col-lg-7">
+    {% if space.photos %}
+    <div id="photoCarousel" class="carousel slide rounded shadow-sm overflow-hidden mb-3"
+         data-bs-ride="carousel">
+      <div class="carousel-inner">
+        {% for photo in space.photos %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}">
+          <img src="{{ photo }}" class="d-block w-100"
+               alt="Фото {{ loop.index }}" style="height: 340px; object-fit: cover;">
+        </div>
+        {% endfor %}
+      </div>
+      {% if space.photos | length > 1 %}
+      <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+      </button>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded mb-3 shadow-sm"
+         style="height: 340px;">
+      <span style="font-size: 5rem;">🏢</span>
+    </div>
+    {% endif %}
+
+    <h1 class="h2 fw-bold mb-1">{{ space.name }}</h1>
+    <p class="text-muted mb-2">📍 {{ space.address }}, {{ space.city }}</p>
+
+    <div class="d-flex align-items-center gap-4 mb-3">
+      <div class="fs-4 fw-bold text-primary">{{ space.price_per_hour | int }} ₽/час</div>
+      <div class="text-muted">👥 до {{ space.capacity }} человек</div>
+    </div>
+
+    {% if space.amenities %}
+    <div class="mb-3">
+      <strong>Удобства:</strong>
+      <div class="mt-1">
+        {% set amenity_labels_map = {
+          'wifi': '📶 Wi-Fi',
+          'projector': '📽 Проектор',
+          'coffee': '☕ Кофе',
+          'parking': '🅿 Парковка',
+          'meeting_room': '🤝 Переговорная'
+        } %}
+        {% for a in space.amenities %}
+        <span class="badge bg-info text-dark me-1 mb-1 p-2">
+          {{ amenity_labels_map.get(a, a) }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if space.description %}
+    <div class="mb-3">
+      <strong>Описание:</strong>
+      <p class="mt-1 text-muted">{{ space.description }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Правая колонка: бронирование -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Забронировать слот</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="slotDate" class="form-label fw-semibold">Выберите дату</label>
+          <input type="date" id="slotDate" class="form-control">
+        </div>
+
+        <div id="slotsLoading" class="text-center text-muted d-none py-2">
+          <div class="spinner-border spinner-border-sm me-2"></div>Загрузка слотов...
+        </div>
+        <div id="slotsError" class="alert alert-danger d-none"></div>
+        <div id="slots" class="d-flex flex-wrap gap-2 mb-3"></div>
+
+        {% if current_user %}
+        <form id="bookingForm" method="POST" action="/bookings">
+          <input type="hidden" name="slot_id" id="selectedSlotId">
+          <button type="submit" id="bookBtn" class="btn btn-success w-100" disabled>
+            ✅ Забронировать выбранный слот
+          </button>
+        </form>
+        {% else %}
+        <a href="/auth/login" class="btn btn-outline-primary w-100">
+          🔑 Войдите, чтобы забронировать
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var SPACE_ID = "{{ space.id }}";
+
+  // Set today as default and minimum date
+  (function () {
+    var today = new Date().toISOString().slice(0, 10);
+    var input = document.getElementById("slotDate");
+    input.min   = today;
+    input.value = today;
+  })();
+
+  function formatTime(timeStr) {
+    // "HH:MM:SS" → "HH:MM"
+    return timeStr ? timeStr.slice(0, 5) : timeStr;
+  }
+
+  function loadSlots(date) {
+    var slotsDiv = document.getElementById("slots");
+    var loadingDiv = document.getElementById("slotsLoading");
+    var errorDiv = document.getElementById("slotsError");
+    var bookBtn = document.getElementById("bookBtn");
+
+    slotsDiv.innerHTML = "";
+    errorDiv.classList.add("d-none");
+    if (bookBtn) {
+      bookBtn.disabled = true;
+      document.getElementById("selectedSlotId").value = "";
+    }
+
+    if (!date) return;
+
+    loadingDiv.classList.remove("d-none");
+
+    fetch("/spaces/" + SPACE_ID + "/slots?date=" + date)
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("Ошибка загрузки");
+        return resp.json();
+      })
+      .then(function (slots) {
+        loadingDiv.classList.add("d-none");
+        if (!slots.length) {
+          slotsDiv.innerHTML =
+            '<p class="text-muted">На эту дату слотов нет.</p>';
+          return;
+        }
+        slots.forEach(function (slot) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = slot.is_booked
+            ? "btn btn-sm btn-outline-secondary"
+            : "btn btn-sm btn-outline-success slot-btn";
+          btn.textContent =
+            formatTime(slot.time_from) + " – " + formatTime(slot.time_to);
+          btn.disabled = slot.is_booked;
+          if (slot.is_booked) {
+            btn.title = "Занято";
+          } else {
+            btn.dataset.slotId = slot.id;
+            btn.addEventListener("click", function () {
+              document
+                .querySelectorAll(".slot-btn")
+                .forEach(function (b) { b.classList.remove("active", "btn-success"); b.classList.add("btn-outline-success"); });
+              btn.classList.add("active", "btn-success");
+              btn.classList.remove("btn-outline-success");
+              if (bookBtn) {
+                document.getElementById("selectedSlotId").value = slot.id;
+                bookBtn.disabled = false;
+              }
+            });
+          }
+          slotsDiv.appendChild(btn);
+        });
+      })
+      .catch(function (err) {
+        loadingDiv.classList.add("d-none");
+        errorDiv.textContent = "Не удалось загрузить слоты: " + err.message;
+        errorDiv.classList.remove("d-none");
+      });
+  }
+
+  var dateInput = document.getElementById("slotDate");
+  dateInput.addEventListener("change", function () {
+    loadSlots(this.value);
+  });
+  // Загрузить слоты при открытии страницы
+  loadSlots(dateInput.value);
+</script>
+{% endblock %}
