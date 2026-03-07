@@ -15,6 +15,7 @@ from sqlalchemy import (
     Time,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.types import Text as TextType
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -30,10 +31,10 @@ class Space(Base):
     description = Column(Text, nullable=True)
     price_per_hour = Column(Numeric(10, 2), nullable=False)
     capacity = Column(Integer, nullable=False)
-    amenities = Column(ARRAY(String), nullable=False, default=list)
+    amenities = Column(ARRAY(TextType()), nullable=False, default=list)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
-    photos = Column(ARRAY(String), nullable=False, default=list)
+    photos = Column(ARRAY(TextType()), nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     slots = relationship(
