@@ -3,45 +3,75 @@
 {% block title %}Регистрация — WorkSpot{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-sm-10 col-md-6 col-lg-5">
-    <div class="card shadow-sm border-0 mt-4">
-      <div class="card-body p-4">
-        <h1 class="h4 mb-4 text-center fw-bold">Регистрация в WorkSpot</h1>
+<div class="row justify-content-center align-items-stretch mt-2">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow border-0 h-100">
+      <div class="card-body p-4 p-lg-5">
+        <h1 class="h4 mb-4 fw-bold">
+          <i class="bi bi-person-plus me-2 text-success"></i>Регистрация
+        </h1>
 
         {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+        </div>
         {% endif %}
 
         <form method="POST" action="/auth/register">
           <div class="mb-3">
-            <label for="name" class="form-label">Имя</label>
-            <input type="text" name="name" id="name" class="form-control"
-                   placeholder="Иван Петров" required autofocus
-                   value="{{ name_value or '' }}">
+            <label for="name" class="form-label fw-semibold">Имя</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input type="text" name="name" id="name" class="form-control"
+                     placeholder="Иван Петров" required autofocus
+                     value="{{ name_value or '' }}">
+            </div>
           </div>
           <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" name="email" id="email" class="form-control"
-                   placeholder="you@example.com" required
-                   value="{{ email_value or '' }}">
+            <label for="email" class="form-label fw-semibold">Email</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" name="email" id="email" class="form-control"
+                     placeholder="you@example.com" required
+                     value="{{ email_value or '' }}">
+            </div>
           </div>
           <div class="mb-4">
-            <label for="password" class="form-label">Пароль</label>
-            <input type="password" name="password" id="password"
-                   class="form-control" placeholder="Минимум 8 символов" required
-                   minlength="8">
+            <label for="password" class="form-label fw-semibold">Пароль</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input type="password" name="password" id="password"
+                     class="form-control" placeholder="Минимум 8 символов" required
+                     minlength="8">
+            </div>
           </div>
-          <button type="submit" class="btn btn-success w-100">Зарегистрироваться</button>
+          <button type="submit" class="btn btn-success w-100 py-2">
+            <i class="bi bi-person-check me-1"></i>Зарегистрироваться
+          </button>
         </form>
 
         <hr class="my-4">
         <p class="text-center text-muted mb-0">
           Уже есть аккаунт?
-          <a href="/auth/login">Войти</a>
+          <a href="/auth/login" class="fw-semibold">Войти</a>
         </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 col-lg-3 d-none d-md-block">
+    <div class="ws-auth-brand rounded h-100">
+      <div>
+        <i class="bi bi-buildings" style="font-size: 3.5rem;"></i>
+        <h2 class="mt-3">WorkSpot</h2>
+        <p>Начните работать в лучших коворкингах города.</p>
+        <ul class="list-unstyled mt-3" style="opacity:.85;">
+          <li class="mb-1"><i class="bi bi-check2-circle me-2"></i>Бесплатная регистрация</li>
+          <li class="mb-1"><i class="bi bi-check2-circle me-2"></i>Бронирование за 1 минуту</li>
+          <li><i class="bi bi-check2-circle me-2"></i>Отмена в любой момент</li>
+        </ul>
       </div>
     </div>
   </div>
 </div>
 {% endblock %}
+

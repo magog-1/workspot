@@ -7,7 +7,7 @@ from admin.router import router as admin_router
 from auth.router import router as auth_router
 from bookings.router import router as bookings_router
 from spaces.router import router as spaces_router
-from users.router import router as users_router
+from users.router import profile_router, router as users_router
 
 app = FastAPI(
     title="WorkSpot",
@@ -26,6 +26,7 @@ app.include_router(auth_router)
 app.include_router(spaces_router)
 app.include_router(bookings_router)
 app.include_router(users_router)
+app.include_router(profile_router)
 app.include_router(admin_router)
 
 
