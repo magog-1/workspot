@@ -1,15 +1,141 @@
 {% extends "base.html" %}
 
-{% block title %}Мои бронирования — WorkSpot{% endblock %}
+{% block title %}Профиль — WorkSpot{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-10">
 
-    <h1 class="h3 mb-1">Здравствуйте, {{ current_user.name }}! 👋</h1>
-    <p class="text-muted mb-4">{{ current_user.email }}</p>
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+           style="width:56px;height:56px;font-size:1.6rem;">
+        <i class="bi bi-person-fill"></i>
+      </div>
+      <div>
+        <h1 class="h4 mb-0 fw-bold">{{ current_user.name }}</h1>
+        <p class="text-muted mb-0 small">{{ current_user.email }}</p>
+      </div>
+    </div>
 
-    <h2 class="h5 mb-3">Мои бронирования</h2>
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="profileTabs">
+      <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'bookings' %}active{% endif %}"
+           href="/profile?tab=bookings">
+          <i class="bi bi-calendar-check me-1"></i>Мои брони
+          {% if bookings %}
+          <span class="badge bg-primary ms-1">{{ bookings | length }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'account' %}active{% endif %}"
+           href="/profile?tab=account">
+          <i class="bi bi-pencil-square me-1"></i>Мои данные
+        </a>
+      </li>
+    </ul>
+
+    <!-- Tab: Мои брони -->
+    {% if active_tab == 'bookings' or not active_tab %}
+    {% if bookings %}
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover bg-white mb-0 align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th><i class="bi bi-buildings me-1"></i>Коворкинг</th>
+            <th><i class="bi bi-calendar3 me-1"></i>Дата</th>
+            <th><i class="bi bi-clock me-1"></i>Время</th>
+            <th>Статус</th>
+            <th class="text-end">Действие</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td class="fw-semibold">{{ b.space_name }}</td>
+            <td>
+              {% if b.slot_date %}
+              {{ b.slot_date.strftime('%d.%m.%Y') }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if b.slot_time_from and b.slot_time_to %}
+              {{ b.slot_time_from.strftime('%H:%M') }} – {{ b.slot_time_to.strftime('%H:%M') }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if b.status == "active" %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle me-1"></i>Активна
+              </span>
+              {% elif b.status == "cancelled" %}
+              <span class="badge bg-secondary">
+                <i class="bi bi-x-circle me-1"></i>Отменена
+              </span>
+              {% else %}
+              <span class="badge bg-warning text-dark">{{ b.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if b.status == "active" %}
+              <form method="POST" action="/bookings/{{ b.id }}/cancel"
+                    onsubmit="return confirm('Отменить бронирование?');"
+                    class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-x-lg me-1"></i>Отменить
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5 bg-white rounded shadow-sm">
+      <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
+      <p class="fs-5 mt-3">У вас пока нет бронирований</p>
+      <a href="/spaces" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i>Найти коворкинг
+      </a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Tab: Мои данные -->
+    {% if active_tab == 'account' %}
+    <div class="card shadow-sm border-0" style="max-width: 480px;">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-4">
+          <i class="bi bi-person-gear me-2"></i>Основные данные
+        </h5>
+        <form method="POST" action="/users/me/name">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Имя</label>
+            <input type="text" name="name" class="form-control"
+                   value="{{ current_user.name }}" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+            <div class="form-text">Изменение email недоступно.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-floppy me-1"></i>Сохранить
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
 
     {% if bookings %}
     <div class="table-responsive shadow-sm rounded">

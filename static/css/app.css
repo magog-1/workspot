@@ -1,0 +1,58 @@
+/* ── WorkSpot custom styles ───────────────────────────────────── */
+
+:root {
+  --ws-primary: #0d6efd;
+  --ws-brand-dark: #0a58ca;
+}
+
+/* ── Hero banner ─────────────────────────────────────────────── */
+.ws-hero {
+  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+.ws-hero h1 { font-size: 2rem; font-weight: 700; }
+.ws-hero p  { font-size: 1.05rem; opacity: .9; }
+
+/* ── Space card hover ────────────────────────────────────────── */
+.card-space {
+  border: none;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card-space:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .15) !important;
+}
+
+/* ── Amenity badge chip ──────────────────────────────────────── */
+.badge-amenity {
+  font-weight: 500;
+  font-size: .78rem;
+  padding: .32em .7em;
+  border-radius: 2rem;
+}
+
+/* ── Photo placeholder ───────────────────────────────────────── */
+.ws-placeholder {
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+}
+
+/* ── Auth split layout ───────────────────────────────────────── */
+.ws-auth-brand {
+  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  border-radius: 0 .5rem .5rem 0;
+  color: #fff;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+}
+.ws-auth-brand h2 { font-weight: 700; }
+.ws-auth-brand p  { opacity: .85; }
