@@ -3,8 +3,20 @@
 {% block title %}Панель администратора — WorkSpot{% endblock %}
 
 {% block content %}
+<h1 class="h3 mb-3">⚙ Панель администратора</h1>
+
+<!-- Nav-tabs -->
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <a class="nav-link active" href="/admin/dashboard">🏢 Площадки</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="/admin/bookings">📋 Брони</a>
+  </li>
+</ul>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0">⚙ Панель администратора</h1>
+  <span></span>
   <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSpaceModal">
     + Добавить коворкинг
   </button>
