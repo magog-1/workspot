@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Form, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import auth.service as auth_service
@@ -7,11 +8,34 @@ from auth.schemas import LoginRequest, RegisterRequest, TokenResponse, UserRespo
 from database import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+templates = Jinja2Templates(directory="templates")
 
 # ---------------------------------------------------------------------------
 # Cookie settings (shared)
 # ---------------------------------------------------------------------------
 _COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=False)
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/login  — страница формы входа
+# ---------------------------------------------------------------------------
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "current_user": None},
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/register  — страница формы регистрации
+# ---------------------------------------------------------------------------
+@router.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "current_user": None},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -25,14 +49,26 @@ async def register(
     name: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
-    data = RegisterRequest(email=email, password=password, name=name)
-    await auth_service.register(db, data)
+    try:
+        data = RegisterRequest(email=email, password=password, name=name)
+        await auth_service.register(db, data)
+        tokens = await auth_service.login(
+            db, LoginRequest(email=data.email, password=data.password)
+        )
+    except HTTPException as exc:
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "current_user": None,
+                "error": exc.detail,
+                "name_value": name,
+                "email_value": email,
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
-    tokens = await auth_service.login(
-        db, LoginRequest(email=data.email, password=data.password)
-    )
-
-    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url="/spaces", status_code=status.HTTP_302_FOUND)
     response.set_cookie("access_token", tokens["access_token"], **_COOKIE_OPTS)
     response.set_cookie("refresh_token", tokens["refresh_token"], **_COOKIE_OPTS)
     return response
@@ -48,10 +84,22 @@ async def login(
     password: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
-    data = LoginRequest(email=email, password=password)
-    tokens = await auth_service.login(db, data)
+    try:
+        data = LoginRequest(email=email, password=password)
+        tokens = await auth_service.login(db, data)
+    except HTTPException as exc:
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "current_user": None,
+                "error": exc.detail,
+                "email_value": email,
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
-    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url="/spaces", status_code=status.HTTP_302_FOUND)
     response.set_cookie("access_token", tokens["access_token"], **_COOKIE_OPTS)
     response.set_cookie("refresh_token", tokens["refresh_token"], **_COOKIE_OPTS)
     return response

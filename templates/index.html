@@ -51,6 +51,14 @@
         <a href="/spaces" class="btn btn-outline-secondary">Сбросить</a>
       </div>
     </form>
+    <script>
+      // Remove empty inputs before form submit so URL stays clean
+      document.querySelector('form[action="/spaces"]').addEventListener('submit', function () {
+        this.querySelectorAll('input[type="date"], input[type="number"]').forEach(function (el) {
+          if (el.value === '') el.disabled = true;
+        });
+      });
+    </script>
   </div>
 </div>
 

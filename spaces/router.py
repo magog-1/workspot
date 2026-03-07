@@ -24,19 +24,44 @@ templates = Jinja2Templates(directory="templates")
 async def list_spaces(
     request: Request,
     city: str = Query("Москва"),
-    date_: datetime.date | None = Query(None, alias="date"),
-    price_max: float | None = Query(None),
-    capacity: int | None = Query(None),
+    date_: str | None = Query(None, alias="date"),
+    price_max: str | None = Query(None),
+    capacity: str | None = Query(None),
     amenities: list[str] | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(auth_service.get_current_user_optional),
 ):
+    # Convert empty strings sent by the HTML form to None before validation
+    def _date(v: str | None) -> datetime.date | None:
+        if not v:
+            return None
+        try:
+            return datetime.date.fromisoformat(v)
+        except ValueError:
+            return None
+
+    def _float(v: str | None) -> float | None:
+        if not v:
+            return None
+        try:
+            return float(v)
+        except ValueError:
+            return None
+
+    def _int(v: str | None) -> int | None:
+        if not v:
+            return None
+        try:
+            return int(v)
+        except ValueError:
+            return None
+
     filters = SpaceFilter(
-        city=city,
-        date=date_,
-        price_max=price_max,
-        capacity=capacity,
-        amenities=amenities,
+        city=city or "Москва",
+        date=_date(date_),
+        price_max=_float(price_max),
+        capacity=_int(capacity),
+        amenities=amenities or None,
     )
     spaces = await spaces_service.get_all(db, filters)
     spaces_map_data = spaces_service.spaces_to_map_json(spaces)
