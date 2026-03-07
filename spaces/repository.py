@@ -18,8 +18,9 @@ _SLOT_END_HOUR = 21    # last slot starts at 20:00 → ends 21:00
 async def get_all(db: AsyncSession, filters: SpaceFilter) -> list[Space]:
     query = select(Space)
 
-    # city — exact match
-    query = query.where(Space.city == filters.city)
+    # city — exact match (skip if empty, e.g. admin view)
+    if filters.city:
+        query = query.where(Space.city == filters.city)
 
     # price_max
     if filters.price_max is not None:
