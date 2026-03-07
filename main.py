@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -26,3 +27,8 @@ app.include_router(spaces_router)
 app.include_router(bookings_router)
 app.include_router(users_router)
 app.include_router(admin_router)
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/spaces")
