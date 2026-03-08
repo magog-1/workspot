@@ -1,0 +1,41 @@
+# ── Secrets & environment ─────────────────────────────────────
+.env
+*.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Alembic ───────────────────────────────────────────────────
+# Keep migrations tracked — only ignore local override configs
+alembic.ini.local
+
+# ── Uploads (user content, not source) ───────────────────────
+static/uploads/
+
+# ── IDE & OS ──────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Docker ────────────────────────────────────────────────────
+*.log
