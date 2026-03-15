@@ -1,0 +1,21 @@
+groups:
+  - name: workspot-recording-rules
+    interval: 30s
+    rules:
+      - record: workspot:api_request_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, path_group) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      - record: workspot:booking_collision_rate_30d
+        expr: |
+          sum(increase(booking_collisions_total[30d]))
+          /
+          clamp_min(sum(increase(booking_create_attempts_total[30d])), 1)
+
+      - record: workspot:uptime_24h_percent
+        expr: avg_over_time(up{job="workspot-app"}[24h]) * 100

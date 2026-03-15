@@ -7,6 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bookings.models import Booking, BookingStatus
 from bookings.schemas import BookingResponse
+from observability.metrics import (
+    BOOKING_COLLISIONS_TOTAL,
+    BOOKING_CREATE_ATTEMPTS_TOTAL,
+    BOOKING_CREATE_SUCCESS_TOTAL,
+)
 from spaces.models import Space, TimeSlot
 
 
@@ -20,6 +25,8 @@ async def create_booking(
     space_id: uuid.UUID,
     slot_id: uuid.UUID,
 ) -> Booking:
+    BOOKING_CREATE_ATTEMPTS_TOTAL.inc()
+
     # Step 1: Atomically mark slot as booked only if still free
     stmt = (
         update(TimeSlot)
@@ -34,6 +41,7 @@ async def create_booking(
     )
     result = await db.execute(stmt)
     if result.rowcount == 0:
+        BOOKING_COLLISIONS_TOTAL.inc()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Слот уже занят",
@@ -50,6 +58,7 @@ async def create_booking(
     db.add(booking)
     await db.flush()
     await db.refresh(booking)
+    BOOKING_CREATE_SUCCESS_TOTAL.inc()
     return booking
 
 
