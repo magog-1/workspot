@@ -199,6 +199,17 @@
   dateInput.addEventListener("change", function () {
     loadSlots(this.value);
   });
+
+  var bookingForm = document.getElementById("bookingForm");
+  if (bookingForm) {
+    bookingForm.addEventListener("submit", function () {
+      var submitBtn = document.getElementById("bookBtn");
+      if (!submitBtn) return;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Бронируем...';
+    });
+  }
+
   // Загрузить слоты при открытии страницы
   loadSlots(dateInput.value);
 </script>

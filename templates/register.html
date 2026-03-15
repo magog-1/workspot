@@ -43,6 +43,9 @@
               <input type="password" name="password" id="password"
                      class="form-control" placeholder="Минимум 8 символов" required
                      minlength="8">
+              <button type="button" class="btn btn-outline-secondary" id="togglePasswordRegister">
+                <i class="bi bi-eye"></i>
+              </button>
             </div>
           </div>
           <button type="submit" class="btn btn-secondary w-100 py-2">
@@ -73,5 +76,23 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var toggle = document.getElementById("togglePasswordRegister");
+    var input = document.getElementById("password");
+    if (!toggle || !input) return;
+
+    toggle.addEventListener("click", function () {
+      var nextType = input.type === "password" ? "text" : "password";
+      input.type = nextType;
+      toggle.innerHTML = nextType === "password"
+        ? '<i class="bi bi-eye"></i>'
+        : '<i class="bi bi-eye-slash"></i>';
+    });
+  })();
+</script>
 {% endblock %}
 

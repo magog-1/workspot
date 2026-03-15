@@ -98,6 +98,12 @@ window.WorkspotMap = (function () {
         destination = space;
         drawRouteIfReady();
 
+        var targetStatus = byId("routeTargetStatus");
+        if (targetStatus) {
+          targetStatus.textContent = "Цель маршрута: " + (space.name || "Коворкинг");
+          targetStatus.className = "small text-secondary mt-1";
+        }
+
         var active = document.querySelector(".ws-space-option.active");
         if (active) active.classList.remove("active");
         var card = document.querySelector('.ws-space-option[data-space-id="' + space.id + '"]');
@@ -244,6 +250,11 @@ window.WorkspotMap = (function () {
             }
             map.setCenter(MOSCOW_CENTER, DEFAULT_ZOOM, { checkZoomRange: true });
             updatePickModeUI();
+            var targetStatus = byId("routeTargetStatus");
+            if (targetStatus) {
+              targetStatus.textContent = "Цель маршрута: не выбрана";
+              targetStatus.className = "small text-muted mt-1";
+            }
             var active = document.querySelector(".ws-space-option.active");
             if (active) active.classList.remove("active");
           });

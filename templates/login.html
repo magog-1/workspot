@@ -33,6 +33,9 @@
               <span class="input-group-text"><i class="bi bi-lock"></i></span>
               <input type="password" name="password" id="password"
                      class="form-control" placeholder="••••••••" required>
+              <button type="button" class="btn btn-outline-secondary" id="togglePasswordLogin">
+                <i class="bi bi-eye"></i>
+              </button>
             </div>
           </div>
           <button type="submit" class="btn btn-secondary w-100 py-2">
@@ -63,5 +66,23 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var toggle = document.getElementById("togglePasswordLogin");
+    var input = document.getElementById("password");
+    if (!toggle || !input) return;
+
+    toggle.addEventListener("click", function () {
+      var nextType = input.type === "password" ? "text" : "password";
+      input.type = nextType;
+      toggle.innerHTML = nextType === "password"
+        ? '<i class="bi bi-eye"></i>'
+        : '<i class="bi bi-eye-slash"></i>';
+    });
+  })();
+</script>
 {% endblock %}
 

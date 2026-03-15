@@ -10,6 +10,40 @@
   --ws-slate-700: #334155;
 }
 
+/* ── Accessibility and interaction states ───────────────────── */
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .35);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.ws-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.ws-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  border: 1px solid var(--ws-slate-200);
+  background: #fff;
+  font-size: .85rem;
+  color: var(--ws-slate-700);
+}
+
+.ws-filter-chip .btn-close {
+  font-size: .6rem;
+}
+
 /* ── Hero banner ─────────────────────────────────────────────── */
 .ws-hero {
   background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);

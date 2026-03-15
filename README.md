@@ -73,6 +73,8 @@ uvicorn main:app --reload
 | `user2@workspot.ru` | `password123` | Пользователь |
 | `user3@workspot.ru` | `password123` | Пользователь |
 
+> Demo-фото коворкингов в seed-данных берутся из бесплатного стока Pexels.
+
 ---
 
 ## Маршруты приложения

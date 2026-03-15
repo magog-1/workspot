@@ -89,6 +89,40 @@
   </div>
 </div>
 
+{% set amenity_labels_map = {'wifi': 'Wi-Fi', 'projector': 'Проектор', 'coffee': 'Кофе', 'parking': 'Парковка', 'meeting_room': 'Переговорная'} %}
+{% if filters.date or filters.price_max or filters.capacity or filters.amenities %}
+<div class="bg-white rounded shadow-sm p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+    <strong class="small">Активные фильтры</strong>
+    <a href="/spaces" class="btn btn-sm btn-outline-secondary">Очистить все</a>
+  </div>
+  <div class="ws-filter-chips" id="activeFilterChips">
+    {% if filters.date %}
+    <span class="ws-filter-chip">Дата: {{ filters.date.strftime('%d.%m.%Y') }}
+      <button type="button" class="btn-close" aria-label="Удалить" data-filter-remove="date"></button>
+    </span>
+    {% endif %}
+    {% if filters.price_max %}
+    <span class="ws-filter-chip">Цена до: {{ filters.price_max | int }} ₽
+      <button type="button" class="btn-close" aria-label="Удалить" data-filter-remove="price_max"></button>
+    </span>
+    {% endif %}
+    {% if filters.capacity %}
+    <span class="ws-filter-chip">Мест: от {{ filters.capacity }}
+      <button type="button" class="btn-close" aria-label="Удалить" data-filter-remove="capacity"></button>
+    </span>
+    {% endif %}
+    {% if filters.amenities %}
+    {% for am in filters.amenities %}
+    <span class="ws-filter-chip">{{ amenity_labels_map.get(am, am) }}
+      <button type="button" class="btn-close" aria-label="Удалить" data-filter-remove="amenities" data-filter-value="{{ am }}"></button>
+    </span>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <div class="mb-4">
   <button
     class="btn btn-secondary ws-map-toggle-btn"
@@ -127,6 +161,7 @@
       </button>
     </div>
     <div id="originModeStatus" class="small text-muted">Режим: старт не выбран</div>
+    <div id="routeTargetStatus" class="small text-muted mt-1">Цель маршрута: не выбрана</div>
   </div>
   {% else %}
   <div class="map-placeholder bg-secondary text-white text-center p-5 rounded shadow-sm">
@@ -221,6 +256,26 @@
       }
     });
   }
+
+  document.querySelectorAll("[data-filter-remove]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var field = btn.dataset.filterRemove;
+      var value = btn.dataset.filterValue;
+      var url = new URL(window.location.href);
+
+      if (field === "amenities" && value) {
+        var current = url.searchParams.getAll("amenities");
+        url.searchParams.delete("amenities");
+        current.filter(function (v) { return v !== value; }).forEach(function (v) {
+          url.searchParams.append("amenities", v);
+        });
+      } else {
+        url.searchParams.delete(field);
+      }
+
+      window.location.href = url.pathname + (url.searchParams.toString() ? "?" + url.searchParams.toString() : "");
+    });
+  });
 
   document.querySelectorAll(".js-set-destination").forEach(function (btn) {
     btn.addEventListener("click", function (event) {

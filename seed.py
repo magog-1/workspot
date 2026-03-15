@@ -74,7 +74,9 @@ _SPACES = [
         "amenities": ["wifi", "coffee", "projector"],
         "latitude": 55.7647,
         "longitude": 37.6363,
-        "photos": [],
+        "photos": [
+            "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=1600",
+        ],
     },
     {
         "name": "Ключ",
@@ -86,7 +88,9 @@ _SPACES = [
         "amenities": ["wifi", "meeting_room", "coffee"],
         "latitude": 55.7455,
         "longitude": 37.6089,
-        "photos": [],
+        "photos": [
+            "https://images.pexels.com/photos/380769/pexels-photo-380769.jpeg?auto=compress&cs=tinysrgb&w=1600",
+        ],
     },
     {
         "name": "GrowUp Space",
@@ -98,7 +102,9 @@ _SPACES = [
         "amenities": ["wifi", "coffee"],
         "latitude": 55.7495,
         "longitude": 37.5860,
-        "photos": [],
+        "photos": [
+            "https://images.pexels.com/photos/1595385/pexels-photo-1595385.jpeg?auto=compress&cs=tinysrgb&w=1600",
+        ],
     },
     {
         "name": "Workstation",
@@ -110,7 +116,9 @@ _SPACES = [
         "amenities": ["wifi", "parking", "projector"],
         "latitude": 55.7103,
         "longitude": 37.6217,
-        "photos": [],
+        "photos": [
+            "https://images.pexels.com/photos/416320/pexels-photo-416320.jpeg?auto=compress&cs=tinysrgb&w=1600",
+        ],
     },
     {
         "name": "Practicum Hub",
@@ -122,7 +130,9 @@ _SPACES = [
         "amenities": ["wifi", "coffee", "meeting_room"],
         "latitude": 55.7337,
         "longitude": 37.5875,
-        "photos": [],
+        "photos": [
+            "https://images.pexels.com/photos/245240/pexels-photo-245240.jpeg?auto=compress&cs=tinysrgb&w=1600",
+        ],
     },
 ]
 
@@ -158,12 +168,14 @@ async def seed_users(db: AsyncSession) -> list[User]:
 
 
 async def seed_spaces(db: AsyncSession) -> list[Space]:
-    """Создаёт коворкинги, пропускает существующие (по имени)."""
+    """Создаёт коворкинги, а для существующих без фото делает backfill demo-фото."""
     created: list[Space] = []
     for data in _SPACES:
         result = await db.execute(select(Space).where(Space.name == data["name"]))
         existing = result.scalar_one_or_none()
         if existing:
+            if (not existing.photos) and data["photos"]:
+                existing.photos = data["photos"]
             created.append(existing)
             continue
         space = Space(
