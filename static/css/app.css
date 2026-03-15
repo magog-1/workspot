@@ -56,3 +56,63 @@
 }
 .ws-auth-brand h2 { font-weight: 700; }
 .ws-auth-brand p  { opacity: .85; }
+
+/* ── Spaces map mode ─────────────────────────────────────────── */
+.ws-map-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.ws-map-sidebar {
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.ws-map-main {
+  min-width: 0;
+}
+
+.ws-map {
+  width: 100%;
+  min-height: 420px;
+}
+
+.ws-map-large {
+  height: 80vh;
+}
+
+.ws-space-options {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.ws-space-option {
+  border: 1px solid #e9ecef;
+  border-radius: .75rem;
+  padding: .75rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ws-space-option.active {
+  border-color: var(--ws-primary);
+  box-shadow: 0 .25rem .9rem rgba(13, 110, 253, .15);
+  background: #f8fbff;
+}
+
+@media (max-width: 991.98px) {
+  .ws-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-map-sidebar {
+    max-height: none;
+    order: 2;
+  }
+
+  .ws-map-large {
+    height: 60vh;
+  }
+}
