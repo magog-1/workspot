@@ -67,7 +67,7 @@
           <span class="spinner-border spinner-border-sm d-none me-1" id="searchSpinner" role="status"></span>
           <i class="bi bi-search me-1" id="searchIcon"></i>Найти
         </button>
-        <a href="/spaces" class="btn btn-outline-secondary">
+        <a href="/spaces" class="btn btn-secondary">
           <i class="bi bi-x-lg me-1"></i>Сбросить
         </a>
       </div>
@@ -89,37 +89,51 @@
   </div>
 </div>
 
-<!-- Яндекс Карта -->
-{% if yandex_api_key %}
-<div id="map" class="mb-4 rounded shadow-sm" style="height: 400px;"></div>
+<div class="mb-4">
+  <button
+    class="btn btn-secondary ws-map-toggle-btn"
+    type="button"
+    data-bs-toggle="collapse"
+    data-bs-target="#mapToolsCollapse"
+    aria-expanded="false"
+    aria-controls="mapToolsCollapse"
+  >
+    <i class="bi bi-map me-1"></i>Карта и построение маршрута
+  </button>
+</div>
 
-<div class="bg-white rounded shadow-sm p-3 mb-4">
-  <h3 class="h5 mb-3"><i class="bi bi-signpost-split me-1"></i>Построение маршрута</h3>
-  <div class="mb-2">
-    <label class="form-label">Старт: адрес</label>
-    <div class="input-group input-group-sm">
-      <input id="originAddressInput" class="form-control" type="text" placeholder="Например, Москва, Тверская 1">
-      <button id="findAddressBtn" class="btn btn-outline-primary" type="button">Найти</button>
+<div class="collapse mb-4" id="mapToolsCollapse">
+  {% if yandex_api_key %}
+  <div id="map" class="mb-3 rounded shadow-sm" style="height: 400px;"></div>
+
+  <div class="bg-white rounded shadow-sm p-3 ws-map-tools">
+    <h3 class="h5 mb-3"><i class="bi bi-signpost-split me-1"></i>Построение маршрута</h3>
+    <div class="mb-2">
+      <label class="form-label">Старт: адрес</label>
+      <div class="input-group input-group-sm">
+        <input id="originAddressInput" class="form-control" type="text" placeholder="Например, Москва, Тверская 1">
+        <button id="findAddressBtn" class="btn btn-primary" type="button">Найти</button>
+      </div>
     </div>
+    <div class="d-flex gap-2 mb-2 flex-wrap">
+      <button id="useMyLocationBtn" class="btn btn-sm btn-light" type="button">
+        <i class="bi bi-crosshair me-1"></i>Моё местоположение
+      </button>
+      <button id="pickOriginBtn" class="btn btn-sm btn-light" type="button">
+        <i class="bi bi-cursor me-1"></i>Старт на карте
+      </button>
+      <button id="clearRouteBtn" class="btn btn-sm btn-dark" type="button">
+        <i class="bi bi-eraser me-1"></i>Сброс
+      </button>
+    </div>
+    <div id="originModeStatus" class="small text-muted">Режим: старт не выбран</div>
   </div>
-  <div class="d-flex gap-2 mb-2 flex-wrap">
-    <button id="useMyLocationBtn" class="btn btn-sm btn-outline-success" type="button">
-      <i class="bi bi-crosshair me-1"></i>Моё местоположение
-    </button>
-    <button id="pickOriginBtn" class="btn btn-sm btn-outline-warning" type="button">
-      <i class="bi bi-cursor me-1"></i>Старт на карте
-    </button>
-    <button id="clearRouteBtn" class="btn btn-sm btn-outline-secondary" type="button">
-      <i class="bi bi-eraser me-1"></i>Сброс
-    </button>
+  {% else %}
+  <div class="map-placeholder bg-secondary text-white text-center p-5 rounded shadow-sm">
+    <p class="mb-0 fs-5">🗺 Карта недоступна — ключ Яндекс Карт не задан</p>
   </div>
-  <div id="originModeStatus" class="small text-muted">Режим: старт не выбран</div>
+  {% endif %}
 </div>
-{% else %}
-<div class="map-placeholder bg-secondary text-white text-center p-5 rounded mb-4 shadow-sm">
-  <p class="mb-0 fs-5">🗺 Карта недоступна — ключ Яндекс Карт не задан</p>
-</div>
-{% endif %}
 <!-- Карточки коворкингов -->
 {% if spaces %}
 <p class="text-muted mb-3">Найдено: <strong>{{ spaces | length }}</strong> коворкинг(ов)</p>
@@ -141,7 +155,7 @@
           <i class="bi bi-geo-alt me-1"></i>{{ space.address }}
         </p>
         <p class="card-text mb-2">
-          <strong class="text-primary">{{ space.price_per_hour | int }} ₽/час</strong>
+          <strong class="text-dark">{{ space.price_per_hour | int }} ₽/час</strong>
           <span class="text-muted ms-2"><i class="bi bi-people me-1"></i>до {{ space.capacity }} чел.</span>
         </p>
         {% if space.amenities %}
@@ -155,13 +169,13 @@
           {% endfor %}
         </div>
         {% endif %}
-        <a href="/spaces/{{ space.id }}" class="btn btn-outline-primary mt-auto">
+        <a href="/spaces/{{ space.id }}" class="btn btn-outline-secondary mt-auto">
           Подробнее <i class="bi bi-arrow-right ms-1"></i>
         </a>
         {% if yandex_api_key and space.latitude is not none and space.longitude is not none %}
         <button
           type="button"
-          class="btn btn-outline-success mt-2 js-set-destination"
+          class="btn btn-outline-dark mt-2 js-set-destination ws-route-card-btn"
           data-space-id="{{ space.id }}"
           data-name="{{ space.name }}"
           data-lat="{{ space.latitude }}"
@@ -179,7 +193,7 @@
 <div class="text-center text-muted py-5 bg-white rounded shadow-sm">
   <i class="bi bi-search" style="font-size: 3rem;"></i>
   <p class="fs-5 mt-3">По вашему запросу ничего не найдено</p>
-  <a href="/spaces" class="btn btn-outline-primary">Показать все коворкинги</a>
+  <a href="/spaces" class="btn btn-secondary">Показать все коворкинги</a>
 </div>
 {% endif %}
 {% endblock %}
@@ -188,9 +202,35 @@
 <script src="/static/js/spaces_map.js"></script>
 <script>
   var SPACES = {{ spaces_json | safe }};
+  var mapToolsCollapse = document.getElementById("mapToolsCollapse");
+  var mapIsInitialized = false;
+  var pendingDestinationBtn = null;
 
-  WorkspotMap.init({
-    spaces: SPACES
+  function initMapIfNeeded() {
+    if (mapIsInitialized) return;
+    WorkspotMap.init({ spaces: SPACES });
+    mapIsInitialized = true;
+  }
+
+  if (mapToolsCollapse) {
+    mapToolsCollapse.addEventListener("shown.bs.collapse", function () {
+      initMapIfNeeded();
+      if (pendingDestinationBtn) {
+        pendingDestinationBtn.click();
+        pendingDestinationBtn = null;
+      }
+    });
+  }
+
+  document.querySelectorAll(".js-set-destination").forEach(function (btn) {
+    btn.addEventListener("click", function (event) {
+      if (mapIsInitialized) return;
+      if (!mapToolsCollapse) return;
+
+      event.preventDefault();
+      pendingDestinationBtn = btn;
+      bootstrap.Collapse.getOrCreateInstance(mapToolsCollapse).show();
+    });
   });
 </script>
 {% endblock %}

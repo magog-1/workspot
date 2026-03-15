@@ -45,7 +45,7 @@
     </p>
 
     <div class="d-flex align-items-center gap-4 mb-3">
-      <div class="fs-4 fw-bold text-primary">{{ space.price_per_hour | int }} ₽/час</div>
+      <div class="fs-4 fw-bold text-dark">{{ space.price_per_hour | int }} ₽/час</div>
       <div class="text-muted"><i class="bi bi-people me-1"></i>до {{ space.capacity }} человек</div>
     </div>
 
@@ -62,7 +62,7 @@
           'meeting_room': 'Переговорная'
         } %}
         {% for a in space.amenities %}
-        <span class="badge badge-amenity bg-info text-dark me-1 mb-1">
+        <span class="badge badge-amenity me-1 mb-1">
           <i class="bi {{ amenity_icons.get(a, 'bi-check2') }} me-1"></i>{{ amenity_labels_map.get(a, a) }}
         </span>
         {% endfor %}
@@ -81,7 +81,7 @@
   <!-- Правая колонка: бронирование -->
   <div class="col-lg-5">
     <div class="card shadow-sm border-0">
-      <div class="card-header bg-primary text-white">
+      <div class="card-header bg-light text-dark border-bottom">
         <h5 class="mb-0">Забронировать слот</h5>
       </div>
       <div class="card-body">
@@ -104,7 +104,7 @@
           </button>
         </form>
         {% else %}
-        <a href="/auth/login" class="btn btn-outline-primary w-100">
+        <a href="/auth/login" class="btn btn-secondary w-100">
           <i class="bi bi-box-arrow-in-right me-1"></i>Войдите, чтобы забронировать
         </a>
         {% endif %}

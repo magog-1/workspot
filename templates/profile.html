@@ -7,7 +7,7 @@
   <div class="col-lg-10">
 
     <div class="d-flex align-items-center gap-3 mb-4">
-      <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+      <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center"
            style="width:56px;height:56px;font-size:1.6rem;">
         <i class="bi bi-person-fill"></i>
       </div>
@@ -24,7 +24,7 @@
            href="/profile?tab=bookings">
           <i class="bi bi-calendar-check me-1"></i>Мои брони
           {% if bookings %}
-          <span class="badge bg-primary ms-1">{{ bookings | length }}</span>
+          <span class="badge bg-secondary ms-1">{{ bookings | length }}</span>
           {% endif %}
         </a>
       </li>
@@ -99,7 +99,7 @@
     <div class="text-center text-muted py-5 bg-white rounded shadow-sm">
       <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
       <p class="fs-5 mt-3">У вас пока нет бронирований</p>
-      <a href="/spaces" class="btn btn-primary">
+      <a href="/spaces" class="btn btn-secondary">
         <i class="bi bi-search me-1"></i>Найти коворкинг
       </a>
     </div>
@@ -124,7 +124,7 @@
             <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
             <div class="form-text">Изменение email недоступно.</div>
           </div>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-secondary">
             <i class="bi bi-floppy me-1"></i>Сохранить
           </button>
         </form>

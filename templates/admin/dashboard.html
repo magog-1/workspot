@@ -21,7 +21,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
   <span></span>
-  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSpaceModal">
+  <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#addSpaceModal">
     + Добавить коворкинг
   </button>
 </div>
@@ -57,7 +57,7 @@
         <td class="text-center">
           <div class="d-flex justify-content-center gap-1 flex-wrap">
             <!-- Редактировать -->
-            <button class="btn btn-sm btn-outline-primary"
+                <button class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#editSpaceModal"
                     data-id="{{ space.id }}"
                     data-name="{{ space.name }}"
@@ -72,7 +72,7 @@
               ✏ Ред.
             </button>
             <!-- Слоты -->
-            <button class="btn btn-sm btn-outline-info"
+                <button class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#genSlotsModal"
                     data-id="{{ space.id }}"
                     data-name="{{ space.name }}">
@@ -177,7 +177,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="submit" class="btn btn-success">Создать</button>
+        <button type="submit" class="btn btn-secondary">Создать</button>
       </div>
     </form>
   </div>
@@ -249,7 +249,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <button type="submit" class="btn btn-secondary">Сохранить</button>
       </div>
     </form>
   </div>
@@ -284,7 +284,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="submit" class="btn btn-info text-white">Сгенерировать</button>
+        <button type="submit" class="btn btn-secondary">Сгенерировать</button>
       </div>
     </form>
   </div>
@@ -313,7 +313,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="submit" class="btn btn-primary">Загрузить</button>
+        <button type="submit" class="btn btn-secondary">Загрузить</button>
       </div>
     </form>
   </div>

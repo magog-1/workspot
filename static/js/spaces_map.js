@@ -111,14 +111,15 @@ window.WorkspotMap = (function () {
 
         if (btn) {
           btn.classList.toggle("btn-warning", pickOriginMode);
-          btn.classList.toggle("btn-outline-warning", !pickOriginMode);
+          btn.classList.toggle("btn-light", !pickOriginMode);
+          btn.classList.toggle("text-dark", pickOriginMode);
           btn.classList.toggle("active", pickOriginMode);
         }
 
         if (geolocBtn) {
           var geolocActive = originMode === "geolocation";
           geolocBtn.classList.toggle("btn-success", geolocActive);
-          geolocBtn.classList.toggle("btn-outline-success", !geolocActive);
+          geolocBtn.classList.toggle("btn-light", !geolocActive);
           geolocBtn.classList.toggle("active", geolocActive);
         }
 
@@ -131,7 +132,7 @@ window.WorkspotMap = (function () {
             status.className = "small text-success";
           } else if (originMode === "address") {
             status.textContent = "Режим: старт = адрес из поиска";
-            status.className = "small text-primary";
+            status.className = "small text-secondary";
           } else if (originMode === "map") {
             status.textContent = "Режим: старт выбран на карте";
             status.className = "small text-warning";
@@ -158,7 +159,7 @@ window.WorkspotMap = (function () {
             balloonContentHeader: "<strong>" + s.name + "</strong>",
             balloonContentBody: "📍 " + s.address + "<br>💰 " + s.price_per_hour + " ₽/час",
             balloonContentFooter:
-              "<a href='/spaces/" + s.id + "' style='color:#0d6efd;font-weight:500'>Подробнее →</a>",
+              "<a href='/spaces/" + s.id + "' style='font-weight:500;text-decoration:none'>Подробнее →</a>",
             hintContent: s.name
           },
           { preset: "islands#blueStretchyIcon" }
