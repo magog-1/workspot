@@ -73,6 +73,8 @@ uvicorn main:app --reload
 | `user2@workspot.ru` | `password123` | Пользователь |
 | `user3@workspot.ru` | `password123` | Пользователь |
 
+> Demo-фото коворкингов в seed-данных берутся из бесплатного стока Pexels.
+
 ---
 
 ## Маршруты приложения
@@ -97,9 +99,116 @@ uvicorn main:app --reload
 
 ---
 
+## Маршруты на странице коворкингов
+
+Маршруты встроены прямо в основную страницу `/spaces`.
+
+Можно:
+
+1. Задать старт маршрута по адресу (поиск)
+2. Указать старт кликом по карте
+3. Использовать текущее местоположение браузера
+4. Выбрать точку назначения кнопкой **«Построить маршрут»** в карточке коворкинга
+
+---
+
 ## Swagger UI
 
 <http://localhost:8000/docs>
+
+---
+
+## Мониторинг (Prometheus)
+
+В проект добавлены endpoint'ы:
+
+- `GET /healthz` — проверка доступности приложения
+- `GET /metrics` — метрики Prometheus (служебный endpoint)
+
+`/metrics` рекомендуется публиковать только во внутренней сети.
+
+### Запуск
+
+```bash
+docker-compose up --build
+```
+
+Открыть Prometheus: <http://localhost:9090>
+
+### Визуализация в самом Prometheus
+
+В Prometheus можно смотреть метрики в двух режимах:
+
+- **Graph** — график по времени
+- **Table** — табличный вид текущих значений
+
+Используйте готовые recording rules:
+
+- `workspot:api_request_p95_seconds` — p95 по API-группам
+- `workspot:booking_collision_rate_30d` — collision rate за 30 дней
+- `workspot:uptime_24h_percent` — uptime за последние 24 часа, %
+
+Быстрые ссылки:
+
+- p95: <http://localhost:9090/graph?g0.expr=workspot%3Aapi_request_p95_seconds&g0.tab=0>
+- collision 30d: <http://localhost:9090/graph?g0.expr=workspot%3Abooking_collision_rate_30d&g0.tab=0>
+- uptime 24h %: <http://localhost:9090/graph?g0.expr=workspot%3Auptime_24h_percent&g0.tab=0>
+
+Чтобы видеть историю, установите диапазон времени в правом верхнем углу (например, Last 24 hours / Last 7 days).
+
+### Что измеряется
+
+1. **Доступность (Uptime)**
+    - Метрика: `up{job="workspot-app"}`
+    - Интервал scrape: `30s`
+
+2. **Время ответа API (p95 latency)**
+    - Метрика: `http_request_duration_seconds_bucket`
+    - Считается только для API-групп: `/auth`, `/spaces`, `/bookings`, `/users`, `/admin`
+
+3. **Коллизии бронирований (30 дней)**
+    - Метрики:
+       - `booking_create_attempts_total`
+       - `booking_collisions_total`
+       - `booking_create_success_total`
+
+### Готовые PromQL-запросы
+
+**p95 latency (по API-группам):**
+
+```promql
+histogram_quantile(
+   0.95,
+   sum by (le, path_group) (
+      rate(http_request_duration_seconds_bucket[5m])
+   )
+)
+```
+
+**Collision rate за 30 дней:**
+
+```promql
+sum(increase(booking_collisions_total[30d]))
+/
+clamp_min(sum(increase(booking_create_attempts_total[30d])), 1)
+```
+
+### Диапазоны оценки
+
+- Uptime:
+   - `>= 99.5%` — норма
+   - `98%..99.5%` — требует внимания
+   - `< 98%` — критично
+
+- p95 latency:
+   - `<= 0.3` сек — норма
+   - `0.3..0.8` сек — требует внимания
+   - `> 0.8` сек — критично
+
+- Collision rate (30d):
+   - `0` — норма
+   - `1..2` случаев — расследовать
+   - `>= 3` — критично
 
 ---
 

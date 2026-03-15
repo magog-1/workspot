@@ -1,20 +1,60 @@
 /* ── WorkSpot custom styles ───────────────────────────────────── */
 
 :root {
-  --ws-primary: #0d6efd;
-  --ws-brand-dark: #0a58ca;
+  --ws-primary: #2563eb;
+  --ws-brand-dark: #1d4ed8;
+  --ws-slate-50: #f8fafc;
+  --ws-slate-100: #f1f5f9;
+  --ws-slate-200: #e2e8f0;
+  --ws-slate-600: #475569;
+  --ws-slate-700: #334155;
+}
+
+/* ── Accessibility and interaction states ───────────────────── */
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .35);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.ws-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.ws-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  border: 1px solid var(--ws-slate-200);
+  background: #fff;
+  font-size: .85rem;
+  color: var(--ws-slate-700);
+}
+
+.ws-filter-chip .btn-close {
+  font-size: .6rem;
 }
 
 /* ── Hero banner ─────────────────────────────────────────────── */
 .ws-hero {
-  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid var(--ws-slate-200);
   border-radius: 1rem;
   padding: 3rem 2rem;
   margin-bottom: 2rem;
-  color: #fff;
+  color: #0f172a;
 }
 .ws-hero h1 { font-size: 2rem; font-weight: 700; }
-.ws-hero p  { font-size: 1.05rem; opacity: .9; }
+.ws-hero p  { font-size: 1.05rem; color: var(--ws-slate-600); }
 
 /* ── Space card hover ────────────────────────────────────────── */
 .card-space {
@@ -32,6 +72,9 @@
   font-size: .78rem;
   padding: .32em .7em;
   border-radius: 2rem;
+  background: var(--ws-slate-100) !important;
+  color: var(--ws-slate-700) !important;
+  border: 1px solid var(--ws-slate-200);
 }
 
 /* ── Photo placeholder ───────────────────────────────────────── */
@@ -45,7 +88,7 @@
 
 /* ── Auth split layout ───────────────────────────────────────── */
 .ws-auth-brand {
-  background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+  background: linear-gradient(135deg, #1f2937 0%, #334155 100%);
   border-radius: 0 .5rem .5rem 0;
   color: #fff;
   padding: 2.5rem 2rem;
@@ -56,3 +99,89 @@
 }
 .ws-auth-brand h2 { font-weight: 700; }
 .ws-auth-brand p  { opacity: .85; }
+
+/* ── Map tools buttons ──────────────────────────────────────── */
+.ws-map-toggle-btn {
+  border-radius: .65rem;
+  font-weight: 600;
+  box-shadow: 0 .2rem .7rem rgba(15, 23, 42, .15);
+}
+
+.ws-map-tools .btn {
+  border-radius: .6rem;
+  font-weight: 600;
+}
+
+.ws-map-tools .btn.btn-light {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+  color: #212529;
+}
+
+.ws-map-tools .btn.active {
+  box-shadow: 0 .2rem .7rem rgba(15, 23, 42, .2);
+}
+
+.ws-route-card-btn {
+  width: 100%;
+}
+
+/* ── Spaces map mode ─────────────────────────────────────────── */
+.ws-map-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.ws-map-sidebar {
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.ws-map-main {
+  min-width: 0;
+}
+
+.ws-map {
+  width: 100%;
+  min-height: 420px;
+}
+
+.ws-map-large {
+  height: 80vh;
+}
+
+.ws-space-options {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.ws-space-option {
+  border: 1px solid #e9ecef;
+  border-radius: .75rem;
+  padding: .75rem;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ws-space-option.active {
+  border-color: var(--ws-primary);
+  box-shadow: 0 .25rem .9rem rgba(13, 110, 253, .15);
+  background: #f8fbff;
+}
+
+@media (max-width: 991.98px) {
+  .ws-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-map-sidebar {
+    max-height: none;
+    order: 2;
+  }
+
+  .ws-map-large {
+    height: 60vh;
+  }
+}

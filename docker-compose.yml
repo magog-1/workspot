@@ -12,6 +12,22 @@ services:
       - ./static/uploads:/app/static/uploads
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prom_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=45d
+    restart: unless-stopped
+
   db:
     image: postgres:16
     ports:
@@ -29,3 +45,4 @@ services:
 
 volumes:
   pgdata:
+  prom_data:

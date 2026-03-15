@@ -63,6 +63,7 @@ async def list_spaces(
         capacity=_int(capacity),
         amenities=amenities or None,
     )
+
     spaces = await spaces_service.get_all(db, filters)
     spaces_map_data = spaces_service.spaces_to_map_json(spaces)
 
