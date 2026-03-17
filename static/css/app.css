@@ -46,8 +46,8 @@
 
 /* ── Hero banner ─────────────────────────────────────────────── */
 .ws-hero {
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-  border: 1px solid var(--ws-slate-200);
+  background: linear-gradient(135deg, #eaf2ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
   border-radius: 1rem;
   padding: 3rem 2rem;
   margin-bottom: 2rem;
