@@ -39,10 +39,17 @@ def unique_email() -> str:
 # ---------------------------------------------------------------------------
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def test_engine(database_url: str):
-    """Create the schema once per test session against a real Postgres."""
+    """Create the schema per test against a real Postgres.
+
+    Function-scoped because pytest-asyncio uses a fresh event loop per test
+    (``asyncio_default_test_loop_scope=function``); a session-scoped asyncpg
+    engine binds connections to the first test's loop and raises
+    ``InterfaceError: another operation is in progress`` afterwards.
+    """
     from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy.pool import NullPool
 
     # Importing models registers them on Base.metadata.
     import auth.models  # noqa: F401
@@ -50,7 +57,7 @@ async def test_engine(database_url: str):
     import spaces.models  # noqa: F401
     from database import Base
 
-    engine = create_async_engine(database_url, echo=False)
+    engine = create_async_engine(database_url, echo=False, poolclass=NullPool)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
