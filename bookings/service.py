@@ -1,13 +1,13 @@
 import uuid
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import bookings.repository as repo
 from bookings.models import Booking
 from bookings.schemas import BookingResponse
 from spaces.models import TimeSlot
-from sqlalchemy import select
 
 
 async def get_slot_or_404(db: AsyncSession, slot_id: uuid.UUID) -> TimeSlot:
@@ -35,13 +35,9 @@ async def create_booking(
     )
 
 
-async def get_user_bookings(
-    db: AsyncSession, user_id: uuid.UUID
-) -> list[BookingResponse]:
+async def get_user_bookings(db: AsyncSession, user_id: uuid.UUID) -> list[BookingResponse]:
     return await repo.get_user_bookings(db, user_id)
 
 
-async def cancel_booking(
-    db: AsyncSession, booking_id: uuid.UUID, user_id: uuid.UUID
-) -> Booking:
+async def cancel_booking(db: AsyncSession, booking_id: uuid.UUID, user_id: uuid.UUID) -> Booking:
     return await repo.cancel_booking(db, booking_id, user_id)

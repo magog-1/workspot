@@ -11,8 +11,8 @@ from spaces.schemas import SpaceFilter
 # Spaces
 # ---------------------------------------------------------------------------
 
-_SLOT_START_HOUR = 9   # 09:00
-_SLOT_END_HOUR = 21    # last slot starts at 20:00 → ends 21:00
+_SLOT_START_HOUR = 9  # 09:00
+_SLOT_END_HOUR = 21  # last slot starts at 20:00 → ends 21:00
 
 
 async def get_all(db: AsyncSession, filters: SpaceFilter) -> list[Space]:
@@ -156,9 +156,7 @@ async def generate_slots(
     return created
 
 
-async def add_photo(
-    db: AsyncSession, space_id: uuid.UUID, photo_path: str
-) -> Space | None:
+async def add_photo(db: AsyncSession, space_id: uuid.UUID, photo_path: str) -> Space | None:
     space = await get_by_id(db, space_id)
     if space is None:
         return None

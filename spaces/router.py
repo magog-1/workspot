@@ -11,10 +11,11 @@ import auth.service as auth_service
 import spaces.service as spaces_service
 from config import settings
 from database import get_db
-from spaces.schemas import SlotResponse, SpaceFilter, SpaceResponse
+from spaces.schemas import SlotResponse, SpaceFilter
 
 router = APIRouter(prefix="/spaces", tags=["spaces"])
 templates = Jinja2Templates(directory="templates")
+
 
 # ---------------------------------------------------------------------------
 # GET /spaces  — список коворкингов + Яндекс Карта

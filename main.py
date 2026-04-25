@@ -1,5 +1,4 @@
-from fastapi import FastAPI
-from fastapi import Response
+from fastapi import FastAPI, Response
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,7 +9,8 @@ from auth.router import router as auth_router
 from bookings.router import router as bookings_router
 from observability.metrics import APIRequestMetricsMiddleware
 from spaces.router import router as spaces_router
-from users.router import profile_router, router as users_router
+from users.router import profile_router
+from users.router import router as users_router
 
 app = FastAPI(
     title="WorkSpot",

@@ -112,9 +112,7 @@ async def login(
 async def refresh(request: Request):
     new_access_token = await auth_service.refresh_access_token(request)
 
-    response = JSONResponse(
-        content={"access_token": new_access_token, "token_type": "bearer"}
-    )
+    response = JSONResponse(content={"access_token": new_access_token, "token_type": "bearer"})
     response.set_cookie("access_token", new_access_token, **_COOKIE_OPTS)
     return response
 
