@@ -15,8 +15,8 @@ from sqlalchemy import (
     Time,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlalchemy.types import Text as TextType
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import Text as TextType
 
 from database import Base
 

@@ -1,9 +1,9 @@
 from .metrics import (
     API_PATH_PREFIXES,
-    APIRequestMetricsMiddleware,
     BOOKING_COLLISIONS_TOTAL,
     BOOKING_CREATE_ATTEMPTS_TOTAL,
     BOOKING_CREATE_SUCCESS_TOTAL,
+    APIRequestMetricsMiddleware,
 )
 
 __all__ = [

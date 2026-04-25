@@ -2,10 +2,11 @@ import datetime
 import os
 import uuid
 
+import aiofiles
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import and_, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import spaces.service as spaces_service
@@ -35,6 +36,7 @@ async def dashboard(
     current_user: User = Depends(require_admin),
 ):
     from spaces.schemas import SpaceFilter
+
     spaces = await spaces_service.get_all(db, SpaceFilter(city=""))
     return templates.TemplateResponse(
         "admin/dashboard.html",
@@ -172,6 +174,7 @@ async def upload_photo(
     ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     if ext not in _ALLOWED_PHOTO_EXTENSIONS:
         from fastapi import HTTPException
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Недопустимый формат файла. Разрешены: {', '.join(_ALLOWED_PHOTO_EXTENSIONS)}",
@@ -183,8 +186,8 @@ async def upload_photo(
     os.makedirs(_UPLOADS_DIR, exist_ok=True)
 
     contents = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(contents)
+    async with aiofiles.open(dest_path, "wb") as f:
+        await f.write(contents)
 
     # Register path in DB (URL path, not filesystem path)
     photo_url = f"/static/uploads/{filename}"

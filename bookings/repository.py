@@ -1,8 +1,7 @@
 import uuid
-from dataclasses import dataclass
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, select, text, update
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bookings.models import Booking, BookingStatus
@@ -14,10 +13,10 @@ from observability.metrics import (
 )
 from spaces.models import Space, TimeSlot
 
-
 # ---------------------------------------------------------------------------
 # Create booking — atomic double-booking prevention
 # ---------------------------------------------------------------------------
+
 
 async def create_booking(
     db: AsyncSession,
@@ -66,9 +65,8 @@ async def create_booking(
 # Get user bookings — joined with Space and TimeSlot
 # ---------------------------------------------------------------------------
 
-async def get_user_bookings(
-    db: AsyncSession, user_id: uuid.UUID
-) -> list[BookingResponse]:
+
+async def get_user_bookings(db: AsyncSession, user_id: uuid.UUID) -> list[BookingResponse]:
     result = await db.execute(
         select(
             Booking,
@@ -106,12 +104,9 @@ async def get_user_bookings(
 # Cancel booking
 # ---------------------------------------------------------------------------
 
-async def cancel_booking(
-    db: AsyncSession, booking_id: uuid.UUID, user_id: uuid.UUID
-) -> Booking:
-    result = await db.execute(
-        select(Booking).where(Booking.id == booking_id)
-    )
+
+async def cancel_booking(db: AsyncSession, booking_id: uuid.UUID, user_id: uuid.UUID) -> Booking:
+    result = await db.execute(select(Booking).where(Booking.id == booking_id))
     booking = result.scalar_one_or_none()
     if booking is None:
         raise HTTPException(
