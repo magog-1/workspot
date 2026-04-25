@@ -1,10 +1,9 @@
 import uuid
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.models import User
-from spaces.models import Space
 
 
 async def get_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:

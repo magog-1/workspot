@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import auth.service as auth_service
 import bookings.service as bookings_service
-from bookings.schemas import BookingCreate
 from database import get_db
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])

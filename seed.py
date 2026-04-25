@@ -269,9 +269,7 @@ async def seed_bookings(
     created: list[Booking] = []
     for i, slot in enumerate(slots_to_book):
         # Проверяем что слот ещё не забронирован (в БД)
-        result = await db.execute(
-            select(Booking).where(Booking.slot_id == slot.id)
-        )
+        result = await db.execute(select(Booking).where(Booking.slot_id == slot.id))
         if result.scalar_one_or_none():
             continue
 
