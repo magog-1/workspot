@@ -1,0 +1,20 @@
+groups:
+  - name: security
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: security_circuit_breaker_state == 2
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Security circuit breaker is OPEN"
+          description: "Auth fallback mode active for 30+ seconds"
+
+      - alert: HighFallbackRate
+        expr: rate(security_fallback_requests_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High fallback request rate"
+          description: "Security sidecar is handling > 10 requests/sec in fallback mode"

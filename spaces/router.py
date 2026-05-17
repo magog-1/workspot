@@ -11,7 +11,8 @@ import auth.service as auth_service
 import spaces.service as spaces_service
 from config import settings
 from database import get_db
-from spaces.schemas import SlotResponse, SpaceFilter
+from spaces.recommendations import get_recommendations
+from spaces.schemas import SlotResponse, SpaceFilter, SpaceResponse
 
 router = APIRouter(prefix="/spaces", tags=["spaces"])
 templates = Jinja2Templates(directory="templates")
@@ -80,6 +81,23 @@ async def list_spaces(
             "msg": request.query_params.get("msg"),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /spaces/recommendations — рекомендованные пространства (User-Based KNN)
+# ---------------------------------------------------------------------------
+@router.get("/recommendations", response_model=list[SpaceResponse])
+async def recommendations(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(auth_service.get_current_user_optional),
+):
+    from spaces.recommendations import _popular_spaces
+
+    if current_user is None:
+        spaces = await _popular_spaces(db, limit=3)
+    else:
+        spaces = await get_recommendations(current_user.id, db, limit=3)
+    return [SpaceResponse.model_validate(s) for s in spaces]
 
 
 # ---------------------------------------------------------------------------

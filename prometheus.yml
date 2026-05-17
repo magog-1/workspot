@@ -10,3 +10,7 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["app:8000"]
+  - job_name: "workspot-security"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["security:8001"]
