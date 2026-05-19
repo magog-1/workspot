@@ -1,4 +1,5 @@
-"""Security sidecar — HTTP proxy with circuit breaker and fallback policy."""
+"""Security sidecar — HTTP proxy with circuit breaker, fallback policy,
+and MinIO S3 access control."""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from security.metrics import (
 )
 from security.policy import (
     check_fallback_access,
+    check_minio_access,
     decode_jwt_role,
     get_cached_role,
     set_cached_role,
@@ -27,6 +29,7 @@ from security.policy import (
 
 APP_URL = os.environ.get("APP_URL", "http://app:8000")
 AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", APP_URL)
+MINIO_URL = os.environ.get("MINIO_URL", "http://minio:9000")
 JWT_SECRET = os.environ.get("JWT_SECRET", "change-me-in-production-min-32-chars!!")
 CIRCUIT_BREAKER_THRESHOLD = int(os.environ.get("CIRCUIT_BREAKER_THRESHOLD", "5"))
 CIRCUIT_BREAKER_TIMEOUT = int(os.environ.get("CIRCUIT_BREAKER_TIMEOUT", "60"))
@@ -37,6 +40,10 @@ breaker = CircuitBreaker(threshold=CIRCUIT_BREAKER_THRESHOLD, timeout=CIRCUIT_BR
 app = FastAPI(title="WorkSpot Security Sidecar", version="1.0.0")
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 def _extract_token(request: Request) -> str | None:
     auth = request.headers.get("authorization")
     if auth and auth.lower().startswith("bearer "):
@@ -45,10 +52,7 @@ def _extract_token(request: Request) -> str | None:
 
 
 def _identify(request: Request) -> tuple[str | None, str | None, str | None]:
-    """Return (user_id, role, reason).
-
-    ``reason`` is set when identification failed.
-    """
+    """Return (user_id, role, reason). reason is set when identification failed."""
     token = _extract_token(request)
     if not token:
         return None, None, "no_token"
@@ -67,6 +71,10 @@ def _identify(request: Request) -> tuple[str | None, str | None, str | None]:
     return user_id, role, None
 
 
+# ---------------------------------------------------------------------------
+# Service endpoints
+# ---------------------------------------------------------------------------
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     state = breaker.get_state()
@@ -80,6 +88,86 @@ async def metrics() -> Response:
     body, content_type = render_metrics()
     return Response(content=body, media_type=content_type)
 
+
+# ---------------------------------------------------------------------------
+# S3 / MinIO proxy  —  enforces JWT before forwarding to MinIO
+# ---------------------------------------------------------------------------
+
+@app.api_route(
+    "/s3/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+)
+async def s3_proxy(path: str, request: Request) -> Response:
+    """Gate-keeper for all MinIO S3 requests.
+
+    Rules:
+      - No valid JWT                      → 401
+      - role=user  + mutating method      → 403
+      - role=admin + any method           → forward
+      - role=user  + GET/HEAD             → forward
+    """
+    user_id, role, ident_reason = _identify(request)
+    method = request.method
+    resource = f"/s3/{path}"
+
+    if not role:
+        auth_failures_total.inc()
+        log_decision(user_id, role, method, resource, "deny",
+                     f"s3_no_identity:{ident_reason}", breaker.get_state())
+        return Response(
+            status_code=401,
+            content="Unauthorized: valid JWT required for S3 access",
+        )
+
+    if not check_minio_access(role, method):
+        log_decision(user_id, role, method, resource, "deny",
+                     "s3_method_forbidden", breaker.get_state())
+        return Response(
+            status_code=403,
+            content=f"Forbidden: role '{role}' cannot perform {method} on S3",
+        )
+
+    log_decision(user_id, role, method, resource, "allow",
+                 "s3_access_granted", breaker.get_state())
+
+    # Strip the /s3 prefix before forwarding to MinIO
+    body = await request.body()
+    headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in {"host", "x-forwarded-for", "x-real-ip"}
+    }
+    url = f"{MINIO_URL}/{path}"
+    try:
+        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT) as client:
+            upstream = await client.request(
+                method,
+                url,
+                content=body,
+                headers=headers,
+                params=request.query_params,
+            )
+    except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+        log_decision(user_id, role, method, resource, "deny",
+                     f"s3_upstream_error:{type(exc).__name__}", breaker.get_state())
+        return Response(status_code=502, content="MinIO unavailable")
+
+    response_headers = {
+        k: v for k, v in upstream.headers.items()
+        if k.lower() not in {"content-encoding", "transfer-encoding",
+                              "content-length", "connection"}
+    }
+    response_headers["X-Security-S3-Role"] = role
+    return Response(
+        content=upstream.content,
+        status_code=upstream.status_code,
+        headers=response_headers,
+        media_type=upstream.headers.get("content-type"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# App proxy  —  circuit breaker + fallback policy
+# ---------------------------------------------------------------------------
 
 @app.api_route(
     "/{path:path}",

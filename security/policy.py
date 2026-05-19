@@ -1,10 +1,14 @@
-"""Fallback access policy + JWT decode + role cache."""
+"""Fallback access policy + MinIO S3 policy + JWT decode + role cache."""
 
 from __future__ import annotations
 
 import time
 
 from jose import JWTError, jwt
+
+# ---------------------------------------------------------------------------
+# Fallback policy (when app is unavailable — circuit breaker OPEN)
+# ---------------------------------------------------------------------------
 
 FALLBACK_POLICY: dict[str, dict[str, list[str]]] = {
     "admin": {
@@ -17,7 +21,34 @@ FALLBACK_POLICY: dict[str, dict[str, list[str]]] = {
     },
 }
 
-CACHE_TTL = 300
+# ---------------------------------------------------------------------------
+# MinIO S3 access policy
+# ---------------------------------------------------------------------------
+
+# Methods that modify state in S3
+_S3_MUTATING_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
+
+MINIO_POLICY: dict[str, set[str]] = {
+    # admin can do everything
+    "admin": {"GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+    # regular users may only read objects
+    "user": {"GET", "HEAD", "OPTIONS"},
+}
+
+
+def check_minio_access(role: str, method: str) -> bool:
+    """Return True if ``role`` is allowed to perform ``method`` on MinIO."""
+    allowed = MINIO_POLICY.get(role)
+    if not allowed:
+        return False
+    return method.upper() in allowed
+
+
+# ---------------------------------------------------------------------------
+# Role cache
+# ---------------------------------------------------------------------------
+
+CACHE_TTL = 300  # seconds
 
 _role_cache: dict[str, dict] = {}
 
@@ -40,12 +71,20 @@ def clear_cache() -> None:
     _role_cache.clear()
 
 
+# ---------------------------------------------------------------------------
+# App fallback policy
+# ---------------------------------------------------------------------------
+
 def check_fallback_access(role: str, method: str) -> bool:
     policy = FALLBACK_POLICY.get(role)
     if not policy:
         return False
     return method.upper() in policy["allowed_methods"]
 
+
+# ---------------------------------------------------------------------------
+# JWT
+# ---------------------------------------------------------------------------
 
 def decode_jwt_role(token: str, secret: str) -> tuple[str, str]:
     """Decode a JWT and return (user_id, role).
