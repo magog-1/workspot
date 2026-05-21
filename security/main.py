@@ -71,86 +71,22 @@ def _identify(request: Request) -> tuple[str | None, str | None, str | None]:
     return user_id, role, None
 
 
-# ---------------------------------------------------------------------------
-# Service endpoints
-# ---------------------------------------------------------------------------
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    state = breaker.get_state()
-    set_state_metric(state)
-    return {"status": "ok", "circuit_breaker": state}
-
-
-@app.get("/metrics")
-async def metrics() -> Response:
-    set_state_metric(breaker.get_state())
-    body, content_type = render_metrics()
-    return Response(content=body, media_type=content_type)
-
-
-# ---------------------------------------------------------------------------
-# S3 / MinIO proxy  —  enforces JWT before forwarding to MinIO
-# ---------------------------------------------------------------------------
-
-@app.api_route(
-    "/s3/{path:path}",
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-)
-async def s3_proxy(path: str, request: Request) -> Response:
-    """Gate-keeper for all MinIO S3 requests.
-
-    Rules:
-      - No valid JWT                      → 401
-      - role=user  + mutating method      → 403
-      - role=admin + any method           → forward
-      - role=user  + GET/HEAD             → forward
-    """
-    user_id, role, ident_reason = _identify(request)
-    method = request.method
-    resource = f"/s3/{path}"
-
-    if not role:
-        auth_failures_total.inc()
-        log_decision(user_id, role, method, resource, "deny",
-                     f"s3_no_identity:{ident_reason}", breaker.get_state())
-        return Response(
-            status_code=401,
-            content="Unauthorized: valid JWT required for S3 access",
-        )
-
-    if not check_minio_access(role, method):
-        log_decision(user_id, role, method, resource, "deny",
-                     "s3_method_forbidden", breaker.get_state())
-        return Response(
-            status_code=403,
-            content=f"Forbidden: role '{role}' cannot perform {method} on S3",
-        )
-
-    log_decision(user_id, role, method, resource, "allow",
-                 "s3_access_granted", breaker.get_state())
-
-    # Strip the /s3 prefix before forwarding to MinIO
+async def _forward_to_minio(request: Request, s3_path: str, role: str) -> Response:
+    """Forward request to MinIO stripping the /s3 prefix."""
     body = await request.body()
     headers = {
         k: v for k, v in request.headers.items()
         if k.lower() not in {"host", "x-forwarded-for", "x-real-ip"}
     }
-    url = f"{MINIO_URL}/{path}"
-    try:
-        async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT) as client:
-            upstream = await client.request(
-                method,
-                url,
-                content=body,
-                headers=headers,
-                params=request.query_params,
-            )
-    except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
-        log_decision(user_id, role, method, resource, "deny",
-                     f"s3_upstream_error:{type(exc).__name__}", breaker.get_state())
-        return Response(status_code=502, content="MinIO unavailable")
-
+    url = f"{MINIO_URL}/{s3_path}"
+    async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT) as client:
+        upstream = await client.request(
+            request.method,
+            url,
+            content=body,
+            headers=headers,
+            params=request.query_params,
+        )
     response_headers = {
         k: v for k, v in upstream.headers.items()
         if k.lower() not in {"content-encoding", "transfer-encoding",
@@ -165,64 +101,7 @@ async def s3_proxy(path: str, request: Request) -> Response:
     )
 
 
-# ---------------------------------------------------------------------------
-# App proxy  —  circuit breaker + fallback policy
-# ---------------------------------------------------------------------------
-
-@app.api_route(
-    "/{path:path}",
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-)
-async def proxy(path: str, request: Request) -> Response:
-    user_id, role, ident_reason = _identify(request)
-    state = breaker.get_state()
-    set_state_metric(state)
-    method = request.method
-    resource = f"/{path}"
-
-    # In OPEN state — apply fallback policy without contacting the app.
-    if state == "OPEN":
-        fallback_requests_total.inc()
-        if not role:
-            log_decision(
-                user_id, role, method, resource, "deny",
-                f"fallback_no_identity:{ident_reason}", state,
-            )
-            return Response(status_code=401, content="Unauthorized (fallback)")
-        if not check_fallback_access(role, method):
-            log_decision(
-                user_id, role, method, resource, "deny",
-                "fallback_method_blocked", state,
-            )
-            return Response(status_code=403, content="Forbidden (fallback policy)")
-        log_decision(user_id, role, method, resource, "allow", "fallback_allowed", state)
-        return await _forward(request, path, fallback=True)
-
-    # CLOSED or HALF-OPEN: try full validation, then proxy.
-    if state == "HALF-OPEN":
-        log_decision(user_id, role, method, resource, "probe", "half_open_probe", state)
-
-    try:
-        response = await _forward(request, path, fallback=False)
-    except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
-        breaker.record_failure()
-        new_state = breaker.get_state()
-        set_state_metric(new_state)
-        log_decision(
-            user_id, role, method, resource, "deny",
-            f"upstream_error:{type(exc).__name__}", new_state,
-        )
-        return Response(status_code=502, content="Upstream unavailable")
-
-    if response.status_code >= 500:
-        breaker.record_failure()
-    else:
-        breaker.record_success()
-    set_state_metric(breaker.get_state())
-    return response
-
-
-async def _forward(request: Request, path: str, *, fallback: bool) -> Response:
+async def _forward_to_app(request: Request, path: str, *, fallback: bool) -> Response:
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() != "host"}
     url = f"{APP_URL}/{path}"
@@ -237,7 +116,8 @@ async def _forward(request: Request, path: str, *, fallback: bool) -> Response:
     response_headers = {
         k: v
         for k, v in upstream.headers.items()
-        if k.lower() not in {"content-encoding", "transfer-encoding", "content-length", "connection"}
+        if k.lower() not in {"content-encoding", "transfer-encoding",
+                              "content-length", "connection"}
     }
     if fallback:
         response_headers["X-Security-Fallback"] = "true"
@@ -247,3 +127,106 @@ async def _forward(request: Request, path: str, *, fallback: bool) -> Response:
         headers=response_headers,
         media_type=upstream.headers.get("content-type"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Service endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    state = breaker.get_state()
+    set_state_metric(state)
+    return {"status": "ok", "circuit_breaker": state}
+
+
+@app.get("/metrics")
+async def metrics_endpoint() -> Response:
+    set_state_metric(breaker.get_state())
+    body, content_type = render_metrics()
+    return Response(content=body, media_type=content_type)
+
+
+# ---------------------------------------------------------------------------
+# Single catch-all proxy — routes to MinIO or App based on path prefix
+# ---------------------------------------------------------------------------
+
+@app.api_route(
+    "/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+)
+async def proxy(path: str, request: Request) -> Response:
+    method = request.method
+    resource = f"/{path}"
+
+    # ------------------------------------------------------------------ S3
+    # Requests starting with s3/ are gated by JWT and forwarded to MinIO.
+    # Circuit breaker does NOT apply to MinIO — it’s a separate upstream.
+    # ------------------------------------------------------------------ S3
+    if path.startswith("s3/") or path == "s3":
+        s3_path = path[len("s3/"):] if path.startswith("s3/") else ""
+        user_id, role, ident_reason = _identify(request)
+
+        if not role:
+            auth_failures_total.inc()
+            log_decision(user_id, role, method, resource, "deny",
+                         f"s3_no_identity:{ident_reason}", breaker.get_state())
+            return Response(
+                status_code=401,
+                content="Unauthorized: valid JWT required for S3 access",
+            )
+
+        if not check_minio_access(role, method):
+            log_decision(user_id, role, method, resource, "deny",
+                         "s3_method_forbidden", breaker.get_state())
+            return Response(
+                status_code=403,
+                content=f"Forbidden: role '{role}' cannot perform {method} on S3",
+            )
+
+        log_decision(user_id, role, method, resource, "allow",
+                     "s3_access_granted", breaker.get_state())
+        try:
+            return await _forward_to_minio(request, s3_path, role)
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+            log_decision(user_id, role, method, resource, "deny",
+                         f"s3_upstream_error:{type(exc).__name__}", breaker.get_state())
+            return Response(status_code=502, content="MinIO unavailable")
+
+    # ----------------------------------------------------------------- App
+    user_id, role, ident_reason = _identify(request)
+    state = breaker.get_state()
+    set_state_metric(state)
+
+    if state == "OPEN":
+        fallback_requests_total.inc()
+        if not role:
+            log_decision(user_id, role, method, resource, "deny",
+                         f"fallback_no_identity:{ident_reason}", state)
+            return Response(status_code=401, content="Unauthorized (fallback)")
+        if not check_fallback_access(role, method):
+            log_decision(user_id, role, method, resource, "deny",
+                         "fallback_method_blocked", state)
+            return Response(status_code=403, content="Forbidden (fallback policy)")
+        log_decision(user_id, role, method, resource, "allow", "fallback_allowed", state)
+        return await _forward_to_app(request, path, fallback=True)
+
+    if state == "HALF-OPEN":
+        log_decision(user_id, role, method, resource, "probe", "half_open_probe", state)
+
+    try:
+        response = await _forward_to_app(request, path, fallback=False)
+    except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+        breaker.record_failure()
+        new_state = breaker.get_state()
+        set_state_metric(new_state)
+        log_decision(user_id, role, method, resource, "deny",
+                     f"upstream_error:{type(exc).__name__}", new_state)
+        return Response(status_code=502, content="Upstream unavailable")
+
+    if response.status_code >= 500:
+        breaker.record_failure()
+    else:
+        breaker.record_success()
+    set_state_metric(breaker.get_state())
+    return response
