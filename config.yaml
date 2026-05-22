@@ -54,8 +54,8 @@ metadata:
   name: workspot-secrets
 type: Opaque
 stringData:
-  # In a Pod all containers share localhost, so postgres host = localhost
-  database-url: "postgresql+asyncpg://user:password@localhost:5432/workspot"
+  # host 'postgres' matches docker-compose service name — used by docker-compose
+  database-url: "postgresql+asyncpg://user:password@postgres:5432/workspot"
   minio-user: "workspot"
   minio-password: "changeme123"
   jwt-secret: "change-me-in-production-min-32-chars!!"
@@ -103,11 +103,9 @@ spec:
       ports:
         - containerPort: 8000
       env:
+        # Override: in a Pod all containers share localhost, so postgres = localhost
         - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: workspot-secrets
-              key: database-url
+          value: "postgresql+asyncpg://user:password@localhost:5432/workspot"
         - name: MINIO_URL
           value: "http://localhost:9000"
         - name: MINIO_ACCESS_KEY
