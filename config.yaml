@@ -54,7 +54,8 @@ metadata:
   name: workspot-secrets
 type: Opaque
 stringData:
-  database-url: "postgresql+asyncpg://user:password@postgres:5432/workspot"
+  # In a Pod all containers share localhost, so postgres host = localhost
+  database-url: "postgresql+asyncpg://user:password@localhost:5432/workspot"
   minio-user: "workspot"
   minio-password: "changeme123"
   jwt-secret: "change-me-in-production-min-32-chars!!"
@@ -75,6 +76,26 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
+
+    - name: postgres
+      image: postgres:16
+      ports:
+        - containerPort: 5432
+      env:
+        - name: POSTGRES_USER
+          value: "user"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_DB
+          value: "workspot"
+      volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      readinessProbe:
+        exec:
+          command: ["pg_isready", "-U", "user", "-d", "workspot"]
+        initialDelaySeconds: 5
+        periodSeconds: 5
 
     - name: app
       image: workspot-app:latest
@@ -103,7 +124,7 @@ spec:
         httpGet:
           path: /healthz
           port: 8000
-        initialDelaySeconds: 10
+        initialDelaySeconds: 15
         periodSeconds: 15
 
     - name: security
@@ -166,5 +187,7 @@ spec:
     - name: nginx-config
       configMap:
         name: nginx-config
+    - name: postgres-data
+      emptyDir: {}
     - name: minio-data
       emptyDir: {}
