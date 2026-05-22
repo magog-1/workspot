@@ -143,7 +143,7 @@ spec:
 
     - name: minio
       image: minio/minio:latest
-      command: ["server", "/data", "--console-address", ":9001"]
+      args: ["server", "/data", "--console-address", ":9001"]
       ports:
         - containerPort: 9000
         - containerPort: 9001
