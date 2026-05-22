@@ -8,24 +8,42 @@ data:
     events { worker_connections 1024; }
     http {
       upstream security_sidecar { server localhost:8001; }
-      upstream minio_s3 { server localhost:9000; }
       server {
         listen 80;
         client_max_body_size 50m;
-        location /s3/ {
-          rewrite ^/s3/(.*)$ /$1 break;
-          proxy_pass http://minio_s3;
+
+        # Security sidecar diagnostics
+        location /security/metrics {
+          proxy_pass http://security_sidecar/metrics;
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_connect_timeout 10s;
+          proxy_read_timeout 10s;
         }
+
+        location /security/health {
+          proxy_pass http://security_sidecar/health;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_connect_timeout 10s;
+          proxy_read_timeout 10s;
+        }
+
+        # ALL traffic including /s3/* goes through security sidecar.
+        # JWT is enforced for S3 access inside the sidecar.
         location / {
           proxy_pass http://security_sidecar;
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_http_version 1.1;
+          proxy_connect_timeout 30s;
+          proxy_read_timeout 60s;
         }
       }
     }
