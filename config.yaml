@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    worker_processes auto;
+    events { worker_connections 1024; }
+    http {
+      upstream security_sidecar { server localhost:8001; }
+      upstream minio_s3 { server localhost:9000; }
+      server {
+        listen 80;
+        client_max_body_size 50m;
+        location /s3/ {
+          rewrite ^/s3/(.*)$ /$1 break;
+          proxy_pass http://minio_s3;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        location / {
+          proxy_pass http://security_sidecar;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: workspot-secrets
+type: Opaque
+stringData:
+  database-url: "postgresql+asyncpg://user:password@postgres:5432/workspot"
+  minio-user: "workspot"
+  minio-password: "changeme123"
+  jwt-secret: "change-me-in-production-min-32-chars!!"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workspot-pod
+  labels:
+    app: workspot
+spec:
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+
+    - name: app
+      image: workspot-app:latest
+      ports:
+        - containerPort: 8000
+      env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: database-url
+        - name: MINIO_URL
+          value: "http://localhost:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: minio-user
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: minio-password
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8000
+        initialDelaySeconds: 10
+        periodSeconds: 15
+
+    - name: security
+      image: workspot-security:latest
+      ports:
+        - containerPort: 8001
+      env:
+        - name: APP_URL
+          value: "http://localhost:8000"
+        - name: AUTH_SERVICE_URL
+          value: "http://localhost:8000"
+        - name: MINIO_URL
+          value: "http://localhost:9000"
+        - name: CIRCUIT_BREAKER_THRESHOLD
+          value: "5"
+        - name: CIRCUIT_BREAKER_TIMEOUT
+          value: "60"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: jwt-secret
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8001
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+
+    - name: minio
+      image: minio/minio:latest
+      command: ["server", "/data", "--console-address", ":9001"]
+      ports:
+        - containerPort: 9000
+        - containerPort: 9001
+      env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: minio-user
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: workspot-secrets
+              key: minio-password
+      volumeMounts:
+        - name: minio-data
+          mountPath: /data
+
+  volumes:
+    - name: nginx-config
+      configMap:
+        name: nginx-config
+    - name: minio-data
+      emptyDir: {}

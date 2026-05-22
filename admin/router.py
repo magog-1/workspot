@@ -180,17 +180,26 @@ async def upload_photo(
             detail=f"Недопустимый формат файла. Разрешены: {', '.join(_ALLOWED_PHOTO_EXTENSIONS)}",
         )
 
-    # Save file
     filename = f"{uuid.uuid4()}.{ext}"
-    dest_path = os.path.join(_UPLOADS_DIR, filename)
-    os.makedirs(_UPLOADS_DIR, exist_ok=True)
-
     contents = await file.read()
-    async with aiofiles.open(dest_path, "wb") as f:
-        await f.write(contents)
 
-    # Register path in DB (URL path, not filesystem path)
-    photo_url = f"/static/uploads/{filename}"
+    photo_url: str | None = None
+    if os.environ.get("MINIO_URL"):
+        try:
+            from spaces.minio_client import MinIOClient
+
+            client = MinIOClient()
+            photo_url = client.upload_photo(contents, filename, str(space_id))
+        except Exception:
+            photo_url = None
+
+    if not photo_url:
+        dest_path = os.path.join(_UPLOADS_DIR, filename)
+        os.makedirs(_UPLOADS_DIR, exist_ok=True)
+        async with aiofiles.open(dest_path, "wb") as f:
+            await f.write(contents)
+        photo_url = f"/static/uploads/{filename}"
+
     await spaces_service.add_photo(db, space_id, photo_url)
 
     return RedirectResponse(
