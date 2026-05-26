@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from pathlib import Path
 
 from admin.router import router as admin_router
 from auth.router import router as auth_router
@@ -18,13 +19,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+BASE_DIR = Path(__file__).resolve().parent
+
 app.add_middleware(APIRequestMetricsMiddleware)
 
 # Static files (uploaded photos, CSS, JS)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 # Jinja2 templates (shared instance, re-used in routers via dependency or direct import)
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 # Routers
 app.include_router(auth_router)

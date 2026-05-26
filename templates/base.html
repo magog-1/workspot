@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}WorkSpot{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="/static/vendor/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css">
   <link href="/static/css/app.css" rel="stylesheet">
   {% if yandex_api_key %}
   <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
@@ -78,7 +78,7 @@
     <small>&copy; 2026 WorkSpot — платформа для поиска коворкингов</small>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/vendor/bootstrap.bundle.min.js"></script>
   <script>
     // Auto-dismiss alert after 4 s
     document.addEventListener('DOMContentLoaded', function () {
